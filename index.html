@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Avidité — Le Dé du Jugement</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="scene">
+
+  <div class="sky">
+    <div class="stars" id="stars"></div>
+    <div class="rays"></div>
+    <div class="vignette"></div>
+  </div>
+
+  <div class="ruins" aria-hidden="true">
+    <svg viewBox="0 0 1600 260" preserveAspectRatio="none" class="ruins-svg">
+      <g class="pillars">
+        <rect x="20" y="40" width="34" height="220"></rect>
+        <rect x="90" y="90" width="26" height="170"></rect>
+        <rect x="150" y="10" width="40" height="250"></rect>
+        <polygon points="1560,260 1560,60 1600,120 1600,260"></polygon>
+        <rect x="1440" y="70" width="30" height="190"></rect>
+        <rect x="1380" y="30" width="36" height="230"></rect>
+        <rect x="1300" y="110" width="22" height="150"></rect>
+      </g>
+      <g class="silhouette">
+        <path d="M780 260 L780 150 Q800 120 820 150 L820 260 Z"></path>
+        <circle cx="800" cy="118" r="14"></circle>
+      </g>
+    </svg>
+  </div>
+
+  <div class="toolbar">
+    <button class="ghost-btn" id="btnRules">Règles</button>
+    <button class="ghost-btn" id="btnStats">Succès</button>
+    <button class="ghost-btn" id="btnSettings">Paramètres</button>
+  </div>
+
+  <header class="titlebar" id="titlebar">
+    <h1>AVIDITÉ</h1>
+  </header>
+
+  <div class="play-area" id="playArea" hidden>
+    <div class="three-container" id="threeContainer"></div>
+    <div class="crosshair"></div>
+
+    <div class="dial-widget">
+      <svg class="dial" id="dial" viewBox="0 0 400 400">
+        <defs>
+          <radialGradient id="dialGlow" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="#fff6d8"></stop>
+            <stop offset="55%" stop-color="#e8b64f"></stop>
+            <stop offset="100%" stop-color="#7a5418"></stop>
+          </radialGradient>
+          <radialGradient id="dialFace" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="#2a2013"></stop>
+            <stop offset="80%" stop-color="#15100a"></stop>
+            <stop offset="100%" stop-color="#0a0705"></stop>
+          </radialGradient>
+        </defs>
+        <circle class="dial-halo" cx="200" cy="200" r="188"></circle>
+        <circle class="dial-rim" cx="200" cy="200" r="170" fill="url(#dialGlow)"></circle>
+        <circle class="dial-face" cx="200" cy="200" r="152" fill="url(#dialFace)"></circle>
+        <g class="ticks" id="ticks"></g>
+        <g class="numerals" id="numerals"></g>
+        <g class="needle-group" id="needleGroup">
+          <polygon class="needle" points="200,208 194,200 200,54 206,200"></polygon>
+          <circle class="pivot" cx="200" cy="200" r="10"></circle>
+        </g>
+        <circle class="dial-center-dot" cx="200" cy="200" r="4"></circle>
+      </svg>
+      <div class="dial-result" id="dialResult">
+        <span class="face-count" id="faceCountLabel">50</span>
+        <span class="face-word">faces</span>
+      </div>
+    </div>
+
+    <div class="hud3d">
+      <div class="zone-banner" id="zoneHudVal">Donjon de pierre</div>
+      <div class="hud">
+        <div class="stat"><span class="label">Faces du Dé</span><span class="val" id="facesHudVal">50</span></div>
+        <div class="stat"><span class="label">Énergie</span><span class="val" id="energyVal">10</span></div>
+        <div class="stat"><span class="label">Or partie</span><span class="val gold" id="goldRun">0</span></div>
+        <div class="stat"><span class="label">Or banqué</span><span class="val bank" id="goldBank">0</span></div>
+      </div>
+      <div class="inventory" id="inventory">
+        <div class="badge" id="badgeAnti" hidden><span class="badge-icon">⛨</span><span id="badgeAntiVal">0</span></div>
+        <div class="badge" id="badgeReroll" hidden><span class="badge-icon">↻</span><span id="badgeRerollVal">0</span></div>
+      </div>
+      <div class="mines-row" id="minesRow"></div>
+    </div>
+
+    <div class="lock-prompt" id="lockPrompt">
+      <span>Cliquez pour regarder autour de vous</span>
+      <small>Souris pour regarder — touches de déplacement (configurables) pour marcher, sauter — Échap pour libérer le curseur</small>
+    </div>
+  </div>
+
+  <div class="death-flash" id="deathFlash"></div>
+  <div class="gold-flash" id="goldFlash"></div>
+
+  <div class="overlay" id="rulesOverlay" hidden>
+    <div class="overlay-card rules-card">
+      <div class="overlay-head">
+        <h2>Règles</h2>
+        <button class="close-btn" id="btnCloseRules">✕</button>
+      </div>
+      <div class="rules-body">
+        <h3>Chemins</h3>
+        <p>Chaque tour, 8 chemins s'offrent à vous. En prendre un l'applique aussitôt, vous traversez le passage, puis le Dé du Jugement tombe et une nouvelle salle apparaît.</p>
+        <h3>Dé du Jugement</h3>
+        <p>50 faces au départ, une de moins à chaque tour. Sur "1" : vous perdez tout l'or de la partie et la roue reprend son nombre de faces initial.</p>
+        <h3>Or de la partie</h3>
+        <p>Multiplié par le nombre de tours joués. Plus vous restez, plus il pèse — et plus vous risquez de tout perdre d'un coup.</p>
+        <h3>Chemins d'action</h3>
+        <ul>
+          <li><strong>Mine</strong> — +1 or dans 10 tours.</li>
+          <li><strong>Canalisation</strong> — +1 énergie/tour, toute la partie.</li>
+          <li><strong>Anti-destinée</strong> — le prochain lancer ne peut pas faire 1.</li>
+          <li><strong>Rejet</strong> — relance : sauve automatiquement d'un 1.</li>
+          <li><strong>Rajeunissement</strong> — +1 face au dé, toute la partie.</li>
+        </ul>
+        <p>Un chemin d'action fermé (barré) signifie que vous n'avez pas l'énergie pour le prendre.</p>
+        <h3>Chemins spéciaux</h3>
+        <p><strong>Ne rien faire</strong> : passe le tour sans effet. <strong>Doubler énergie</strong> : x2 immédiat, 1 seule fois par partie — une fois pris, ce chemin disparaît. <strong>Récupérer l'or</strong> : banque l'or de la partie dans votre or permanent, la partie continue.</p>
+        <h3>Coûts des actions</h3>
+        <p>+20% par achat, remis à zéro à chaque nouvelle partie.</p>
+        <h3>Les PNJ</h3>
+        <p>Chaque PNJ a une petite chance d'apparaître dans une salle. Vous l'abordez automatiquement en entrant dans la salle (jamais manqué). Leurs achats (contre de l'or banqué, sauf le Parieur qui est gratuit) sont permanents, pour toutes vos parties futures. Leurs prix augmentent de 20% à chaque achat.</p>
+        <h3>Histoire</h3>
+        <p>Les PNJ sont des gens qui n'ont jamais réussi à combler leur propre avidité. Devenus vieux, ils ont fini par abandonner — et ont choisi, à défaut, de vous aider à combler la vôtre.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="overlay" id="settingsOverlay" hidden>
+    <div class="overlay-card settings-card">
+      <div class="overlay-head">
+        <h2>Paramètres</h2>
+        <button class="close-btn" id="btnCloseSettings">✕</button>
+      </div>
+      <div class="speed-row">
+        <span class="speed-label">Vitesse du dé</span>
+        <div class="speed-options" id="speedOptions"></div>
+      </div>
+
+      <div class="speed-row">
+        <span class="speed-label">Volume des sons</span>
+        <input type="range" class="volume-slider" id="sfxVolumeSlider" min="0" max="100" value="60">
+      </div>
+
+      <p class="overlay-sub">Touches de déplacement. « Changer » puis une touche. Échap annule.</p>
+      <div class="keybind-list" id="keybindList"></div>
+      <button class="reset-btn" id="btnResetKeybinds">Réinitialiser les touches</button>
+      <button class="reset-btn" id="btnResetSave">Réinitialiser la sauvegarde</button>
+      <button class="reset-btn" id="btnAdd100Gold">+100 or</button>
+    </div>
+  </div>
+
+  <div class="overlay" id="statsOverlay" hidden>
+    <div class="overlay-card rules-card">
+      <div class="overlay-head">
+        <h2>Succès &amp; Records</h2>
+        <button class="close-btn" id="btnCloseStats">✕</button>
+      </div>
+      <div class="rules-body" id="statsBody"></div>
+    </div>
+  </div>
+
+  <div class="overlay" id="npcOverlay" hidden>
+    <div class="overlay-card shop-card">
+      <div class="overlay-head">
+        <h2 id="npcName">PNJ</h2>
+        <button class="close-btn" id="btnCloseNpc">✕</button>
+      </div>
+      <p class="overlay-sub" id="npcSub" hidden></p>
+      <div class="gold-line">Or banqué : <strong id="npcGoldBank">0</strong></div>
+      <div class="shop-grid" id="npcGrid"></div>
+    </div>
+  </div>
+
+
+</div>
+<script src="https://unpkg.com/three@0.155.0/build/three.js"></script>
+<script src="js/audio.js?v=3"></script>
+<script src="js/game.js?v=24"></script>
+<script src="js/scene3d.js?v=23"></script>
+</body>
+</html>
