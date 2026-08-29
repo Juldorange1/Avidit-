@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "avidite",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "5507", "--bind", "127.0.0.1"],
+      "port": 5507
+    }
+  ]
+}
