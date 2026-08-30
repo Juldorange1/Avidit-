@@ -101,7 +101,18 @@ const SFX = {
     sfxNoise(0.055, { volume: 0.05, filterFreq: 380, filterToFreq: 140, attack: 0.002 });
   },
   jump() {
-    sfxTone(300, 0.16, { type: 'triangle', toFreq: 560, volume: 0.14 });
+    // avant : un simple bip synthétique (300→560Hz) — signalé comme
+    // irréaliste ("pas un 'pm'"). Un vrai saut humain, c'est surtout un bref
+    // effort respiratoire ("hff") + le poids du corps qui se détache du sol
+    // — synthétisé ici par un bruit filtré passe-bande (texture de souffle,
+    // pas un pur ton) superposé à un thump grave très court (poids/impulsion),
+    // plutôt qu'une seule fréquence qui monte. Recherche d'un vrai
+    // enregistrement CC0 (freesound.org) : bloquée, le téléchargement — et
+    // même l'API — y exigent un compte/une authentification, y compris pour
+    // du contenu CC0 ; le pack audio Kenney déjà utilisé sans accroc pour le
+    // reste du jeu n'a pas de son d'effort humain dans son catalogue.
+    sfxNoise(0.13, { volume: 0.1, filterType: 'bandpass', filterFreq: 420, filterToFreq: 230, attack: 0.015 });
+    sfxTone(95, 0.09, { type: 'sine', toFreq: 65, volume: 0.09, attack: 0.005 });
   },
   land() {
     sfxNoise(0.09, { volume: 0.09, filterFreq: 260, filterToFreq: 90 });

@@ -33,6 +33,21 @@ retenue :
   fichier sans son accord explicite au préalable, et ne jamais deviner une
   URL d'asset au hasard**.
 
+**Fait le 2026-08-29** : 7 fichiers CC0 Poly Haven téléchargés après validation
+explicite de l'utilisateur, dans `assets/` — textures PBR `castle_brick_broken_06`
+(murs+plafond) et `cobblestone_floor_08` (sol) toujours utilisées (voir
+`loadPbrTextureSet()` dans `js/scene3d.js`), et une HDRI
+`castle_zavelstein_cellar_1k.hdr` qui ne l'est PLUS : elle nécessitait
+RGBELoader (module ES) chargé via un import map, donc une DEUXIÈME instance
+de Three.js à côté du build classique ("Multiple instances of Three.js"),
+et un lag sévère est apparu juste après — retirée par précaution (voir le
+commentaire de `buildEnvironmentMap()`, qui utilise maintenant un dégradé
+procédural à la place, une seule instance de Three.js, plus aucun module ES
+dans le projet). Le fichier `.hdr` reste sur disque au cas où. Toute future
+demande de nouveaux assets suit la même règle : proposer des pistes précises
+(fichier + taille + licence), attendre l'accord, puis télécharger directement
+(aucun besoin que l'utilisateur télécharge quoi que ce soit lui-même).
+
 ## Fichiers
 
 - `index.html` — page unique, tout le HTML/overlays.

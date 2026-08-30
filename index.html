@@ -95,7 +95,7 @@
 
     <div class="lock-prompt" id="lockPrompt">
       <span>Cliquez pour regarder autour de vous</span>
-      <small>Souris pour regarder — touches de déplacement (configurables) pour marcher, sauter — Échap pour libérer le curseur</small>
+      <small>Souris pour regarder — touches de déplacement (configurables) pour marcher, sauter — E pour interagir avec un PNJ visé — Échap pour libérer le curseur</small>
     </div>
   </div>
 
@@ -184,9 +184,25 @@
 
 
 </div>
+<!-- Import map requise pour GLTFLoader (voir loadModels() dans scene3d.js) :
+     module ES (examples/jsm) qui fait `import ... from 'three'` en interne —
+     un spécificateur "nu" que seul un import map sait résoudre. N'affecte
+     pas le THREE global classique chargé juste en dessous (deux builds de
+     la même version, chacune pour son propre usage — RGBELoader utilisait
+     déjà ce même mécanisme plus tôt dans le projet ; retiré à l'époque par
+     précaution face à un lag qui s'est avéré, après coup, être dû à autre
+     chose entièrement — accélération matérielle désactivée dans le
+     navigateur de l'utilisateur, sans rapport avec Three.js). -->
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.155.0/build/three.module.js"
+  }
+}
+</script>
 <script src="https://unpkg.com/three@0.155.0/build/three.js"></script>
-<script src="js/audio.js?v=3"></script>
-<script src="js/game.js?v=24"></script>
-<script src="js/scene3d.js?v=23"></script>
+<script src="js/audio.js?v=4"></script>
+<script src="js/game.js?v=27"></script>
+<script src="js/scene3d.js?v=46"></script>
 </body>
 </html>

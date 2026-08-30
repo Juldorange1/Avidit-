@@ -3,6 +3,7 @@
 /* ============================= CONSTANTES ============================= */
 
 const SAVE_KEY = 'avidite_save_v1';
+const RUN_SAVE_KEY = 'avidite_run_v1'; // partie EN COURS (tour, dé, énergie, salle...) — distinct de SAVE_KEY (progression permanente) : voir saveRun()/loadRun()
 const BASE_FACES = 50;
 const BASE_ENERGY = 10;
 
@@ -80,6 +81,13 @@ let rebindListenerActive = false;
 function defaultMeta() {
   return {
     gold: 0,
+    // zone visuelle courante, persistée pour qu'un rechargement de page (F5,
+    // ou fermer/rouvrir) retrouve le même décor plutôt que d'en retirer un
+    // au hasard — demandé explicitement. Tout le reste de `run` (dé, or de
+    // partie, énergie...) recommence à zéro comme avant : seule la zone/le
+    // décor doit survivre à un rechargement.
+    zoneIndex: Math.floor(Math.random() * ZONE_COUNT),
+    roomsInZone: 0,
     lvl: { extraFaces: 0, turn1Energy: 0 },
     npc: {
       npc1Picks: 0,          // compteur permanent cumulé de choix pris chez le PNJ 1
@@ -116,6 +124,8 @@ function loadMeta() {
     const d = defaultMeta();
     return {
       gold: typeof parsed.gold === 'number' ? parsed.gold : d.gold,
+      zoneIndex: (typeof parsed.zoneIndex === 'number' && parsed.zoneIndex >= 0 && parsed.zoneIndex < ZONE_COUNT) ? parsed.zoneIndex : d.zoneIndex,
+      roomsInZone: typeof parsed.roomsInZone === 'number' ? parsed.roomsInZone : d.roomsInZone,
       lvl: {
         extraFaces: (parsed.lvl && typeof parsed.lvl.extraFaces === 'number') ? parsed.lvl.extraFaces : d.lvl.extraFaces,
         turn1Energy: (parsed.lvl && typeof parsed.lvl.turn1Energy === 'number') ? parsed.lvl.turn1Energy : d.lvl.turn1Energy,
@@ -135,35 +145,81 @@ function saveMeta() {
   localStorage.setItem(SAVE_KEY, JSON.stringify(meta));
 }
 
+/* Sauvegarde la partie EN COURS (tour, dé, énergie, or, salle exacte...),
+   pas seulement la progression permanente (meta) — demandé explicitement :
+   "si on était au tour 20 et que le dé a 30 faces max, ces informations sont
+   enregistrées". `getCurrentPaths()`/`getCurrentNpcs()` (voir plus bas) sont
+   des fonctions PURES de `run` (aucun tirage aléatoire à l'affichage — tout
+   ce qui est aléatoire, ex. `roomNpcs`/`npc2BonusDoor`, est tiré UNE FOIS
+   dans startNewTurn() et stocké dans `run`) : sauvegarder `run` tel quel
+   suffit donc à reconstruire exactement la même salle au rechargement, pas
+   besoin de sérialiser la salle séparément. Appelée depuis render() (voir
+   plus bas), donc à chaque changement d'état visible — jamais depuis la
+   boucle 3D par frame. */
+function saveRun() {
+  if (run) localStorage.setItem(RUN_SAVE_KEY, JSON.stringify(run));
+}
+
+function loadRun() {
+  try {
+    const raw = localStorage.getItem(RUN_SAVE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    // une partie qui s'est terminée (perdue) ne doit pas "reprendre" morte —
+    // repli sur une partie neuve dans ce cas, comme s'il n'y avait rien à charger.
+    if (!parsed || parsed.alive === false || parsed.ended === true) return null;
+    return parsed;
+  } catch (e) {
+    return null;
+  }
+}
+
 function newRun() {
-  run = {
-    turn: 0,
-    turnsPassed: 0,
-    energy: 0,
-    gold: 0,
-    costs: { ...ACTION_BASE_COST },
-    canalBonus: 0,
-    rajeunBonus: 0,
-    antiCharges: 0,
-    rerollTokens: 0,
-    pendingMines: [],
-    usedDouble: false,
-    alive: true,
-    ended: false,
-    rolling: false,
-    // ---- PNJ (état propre à cette partie) ----
-    npc1FaceDelta: 0,          // ajustement (peut être négatif) du nombre de faces, offert par le PNJ 1
-    npc1RemainingPicks: 0,     // choix restants pour la visite en cours chez le PNJ 1
-    npc2BonusDoor: null,       // id de l'action dont le coût est réduit cette salle (ou null)
-    npc3BonusDoor: null,       // id de l'action qui rapporte de l'or banqué cette salle (ou null)
-    npcChanceBoostNextRoom: false, // consommé par startNewTurn() pour la salle suivante seulement
-    roomNpcs: [],               // PNJ présents dans la salle courante
-    // ---- zone visuelle (propre à cette partie) ----
-    zoneIndex: Math.floor(Math.random() * ZONE_COUNT),
-    roomsInZone: 0,
-  };
+  const saved = loadRun();
+  if (saved) {
+    run = saved;
+  } else {
+    run = {
+      turn: 0,
+      turnsPassed: 0,
+      energy: 0,
+      gold: 0,
+      costs: { ...ACTION_BASE_COST },
+      canalBonus: 0,
+      rajeunBonus: 0,
+      antiCharges: 0,
+      rerollTokens: 0,
+      pendingMines: [],
+      usedDouble: false,
+      alive: true,
+      ended: false,
+      rolling: false,
+      // ---- PNJ (état propre à cette partie) ----
+      npc1FaceDelta: 0,          // ajustement (peut être négatif) du nombre de faces, offert par le PNJ 1
+      npc1RemainingPicks: 0,     // choix restants pour la visite en cours chez le PNJ 1
+      npc1VisitedThisRoom: false, // vrai dès le premier talkToNpc('npc1') de cette salle — voir startNewTurn()/talkToNpc()
+      npc2BonusDoor: null,       // id de l'action dont le coût est réduit cette salle (ou null)
+      npc3BonusDoor: null,       // id de l'action qui rapporte de l'or banqué cette salle (ou null)
+      npcChanceBoostNextRoom: false, // consommé par startNewTurn() pour la salle suivante seulement
+      roomNpcs: [],               // PNJ présents dans la salle courante
+      // ---- zone visuelle : reprise de meta (persistée), PAS retirée au hasard
+      // à chaque partie — voir defaultMeta()/loadMeta() et le compteur dans
+      // startNewTurn() qui la met à jour dans meta au fil du jeu. ----
+      zoneIndex: meta.zoneIndex,
+      roomsInZone: meta.roomsInZone,
+    };
+  }
   if (window.enterPlayMode) window.enterPlayMode();
-  startNewTurn();
+  if (saved) {
+    // salle déjà connue (restaurée telle quelle) : on la reconstruit sans
+    // repasser par startNewTurn(), qui avancerait le tour et tirerait une
+    // NOUVELLE salle au hasard au lieu de reprendre exactement la même.
+    if (window.markRoomAlreadyEntered) window.markRoomAlreadyEntered();
+    render();
+    if (window.regenerateHub) window.regenerateHub();
+  } else {
+    startNewTurn();
+  }
 }
 
 /* ============================= LOGIQUE DE JEU ============================= */
@@ -203,6 +259,11 @@ function startNewTurn() {
   if (run.turn === 1) energyGain += meta.lvl.turn1Energy; // PNJ 3 : bonus d'énergie au 1er tour
   run.energy += energyGain;
 
+  // nouvelle salle = nouvelle visite possible chez le PNJ 1 (voir talkToNpc()) :
+  // un plein jeu de choix gratuits, mais une seule fois par salle même si on
+  // lui reparle plusieurs fois — demandé explicitement.
+  run.npc1VisitedThisRoom = false;
+
   // toutes les ROOMS_PER_ZONE (200) salles traversées, bascule sur une autre zone
   // au hasard (jamais la même) — le compteur ne dépend PAS de turnsPassed : perdre
   // sur un "1" ne fait pas reculer la progression d'exploration.
@@ -215,6 +276,12 @@ function startNewTurn() {
     run.zoneIndex = next;
     run.roomsInZone = 0;
   }
+  // persisté à chaque tour (pas seulement au changement de zone) : le compteur
+  // roomsInZone doit lui aussi survivre à un rechargement, sinon on repartirait
+  // toujours à 0 dans la même zone au lieu de continuer la progression réelle.
+  meta.zoneIndex = run.zoneIndex;
+  meta.roomsInZone = run.roomsInZone;
+  saveMeta();
 
   // porte(s) bonus de cette salle, si les mécaniques PNJ correspondantes sont
   // débloquées — inclut aussi "Ne rien faire"/"Doubler l'énergie" (les deux
@@ -458,6 +525,7 @@ function playRollAnimation(rollSequence, faces, lostGold) {
 
 function render() {
   if (!run) return;
+  saveRun(); // à chaque rendu = à chaque changement d'état visible, jamais par frame (voir saveRun())
 
   // records permanents (menu Succès) — vérifiés à chaque rendu, donc après
   // quasiment toute action affectant l'un de ces chiffres.
@@ -743,10 +811,21 @@ function renderStats() {
 }
 
 /* Appelé par scene3d.js quand le joueur marche jusqu'à un PNJ. */
+/* Appelé par scene3d.js quand le joueur interagit avec un PNJ (touche
+   dédiée, voir INTERACT_KEY) — peut arriver plusieurs fois pour le même PNJ
+   dans la même salle, demandé explicitement. Pour le PNJ 1 (offres
+   gratuites limitées), seule la PREMIÈRE interaction de la salle recharge
+   ses choix — sinon reparler à volonté les rechargerait à chaque fois,
+   contournant complètement la limite ("juste le PNJ qui donne gratuitement
+   ne peut donner qu'une fois, mais on peut quand même interagir plusieurs
+   fois avec lui"). */
 function talkToNpc(npcId) {
   if (!run) return;
   if (window.SFX) SFX.npcGreet();
-  if (npcId === 'npc1') run.npc1RemainingPicks = npc1MaxOffers();
+  if (npcId === 'npc1' && !run.npc1VisitedThisRoom) {
+    run.npc1RemainingPicks = npc1MaxOffers();
+    run.npc1VisitedThisRoom = true;
+  }
   renderNpcOverlay(npcId);
   showOverlay('npcOverlay');
   if (document.pointerLockElement) document.exitPointerLock();
@@ -930,10 +1009,9 @@ function buildDial() {
 function wireEvents() {
   document.getElementById('btnCloseNpc').addEventListener('click', () => {
     hideOverlay('npcOverlay');
-    // s'il y avait plusieurs PNJ dans cette salle, on passe au suivant —
-    // voir queueRoomNpcs()/advanceNpcQueue() dans scene3d.js : garantit
-    // qu'aucun PNJ présent n'est jamais manqué.
-    if (window.advanceNpcQueue) window.advanceNpcQueue();
+    // pas d'enchaînement automatique vers un autre PNJ : interagir est
+    // désormais TOUJOURS un choix explicite (touche dédiée visée sur le
+    // PNJ voulu) — voir INTERACT_KEY dans scene3d.js.
   });
 
   document.getElementById('sfxVolumeSlider').addEventListener('input', (e) => {
