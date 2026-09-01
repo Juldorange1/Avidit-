@@ -857,21 +857,67 @@ function renderRulesNpcOffers() {
   `).join('');
 }
 
+/* Rangs de record (0=Bronze .. 5=Divin), une seule échelle de couleurs
+   partagée par TOUS les records — demandé explicitement ("chaque record doit
+   être associé à une couleur qui est associée à un chiffre qui est le
+   rang"). Le rang divin (le plus dur à obtenir) a un traitement visuel à
+   part (halo doré animé, voir .record-rank-divine dans style.css) plutôt
+   qu'une simple couleur unie, pour vraiment se démarquer des autres. */
+const RECORD_RANKS = [
+  { key: 'bronze', color: '#b5723a' },
+  { key: 'silver', color: '#c7d0d9' },
+  { key: 'gold', color: '#e8b64f' },
+  { key: 'platinum', color: '#7fe0d0' },
+  { key: 'diamond', color: '#9fc6ff' },
+  { key: 'divine', color: '#fff6d8' },
+];
+
+/* `thresholds` = les 5 valeurs minimales pour atteindre les rangs 1 à 5
+   (rang 0 en dessous du premier seuil). Un seuil par record, PAS une échelle
+   commune : les records n'ont pas du tout la même échelle de valeurs
+   (l'énergie max se compte en dizaines, l'or total dépensé en dizaines de
+   milliers) — les seuils de chaque record sont choisis indépendamment pour
+   que la difficulté RELATIVE de décrocher un rang donné reste comparable
+   d'un record à l'autre, comme demandé ("la longueur et difficulté d'avoir
+   chaque rang doit être équivalente pour chaque record"). Estimés à dire
+   d'expert (le jeu n'a pas encore de données de parties réelles) : à
+   recalibrer une fois de vraies parties jouées si un rang s'avère trop
+   facile ou trop dur par rapport aux autres. */
+function rankForValue(value, thresholds) {
+  let rank = 0;
+  for (const th of thresholds) {
+    if (value >= th) rank++;
+  }
+  return Math.min(rank, RECORD_RANKS.length - 1);
+}
+
+/* Un seul tableau de records unifié — l'amélioration la moins avancée en
+   fait partie au même titre que les 5 statistiques, plus de section à part
+   ("même l'amélioration la moins avancée fait partie des records comme les
+   autres", demandé explicitement). */
+function getRecords() {
+  return [
+    { label: t('stats.lowestUpgrade.title'), value: getLowestUpgrade().level, thresholds: [1, 3, 6, 10, 15] },
+    { label: t('stats.maxEnergy'), value: meta.stats.maxEnergy, thresholds: [30, 80, 200, 500, 1200] },
+    { label: t('stats.maxTurns'), value: meta.stats.maxTurnsPassed, thresholds: [5, 12, 25, 40, 60] },
+    { label: t('stats.totalRooms'), value: meta.stats.totalRooms, thresholds: [50, 200, 600, 1500, 4000] },
+    { label: t('stats.totalGoldSpent'), value: meta.stats.totalGoldSpent, thresholds: [500, 2000, 8000, 25000, 80000] },
+    { label: t('stats.maxRunGold'), value: meta.stats.maxRunGold, thresholds: [100, 500, 2000, 8000, 30000] },
+  ];
+}
+
 function renderStats() {
-  const lowest = getLowestUpgrade();
   const body = document.getElementById('statsBody');
-  body.innerHTML = `
-    <h3>${t('stats.lowestUpgrade.title')}</h3>
-    <p>${lowest.name} — ${t('stats.lowestUpgrade.level')} <strong>${lowest.level}</strong></p>
-    <h3>${t('stats.records.title')}</h3>
-    <ul>
-      <li>${t('stats.maxEnergy')} : <strong>${meta.stats.maxEnergy}</strong></li>
-      <li>${t('stats.maxTurns')} : <strong>${meta.stats.maxTurnsPassed}</strong></li>
-      <li>${t('stats.totalRooms')} : <strong>${meta.stats.totalRooms}</strong></li>
-      <li>${t('stats.totalGoldSpent')} : <strong>${meta.stats.totalGoldSpent}</strong></li>
-      <li>${t('stats.maxRunGold')} : <strong>${meta.stats.maxRunGold}</strong></li>
-    </ul>
-  `;
+  body.innerHTML = `<div class="record-list">${getRecords().map(r => {
+    const info = RECORD_RANKS[rankForValue(r.value, r.thresholds)];
+    return `
+      <div class="record-item record-rank-${info.key}" style="--rank-color:${info.color}">
+        <span class="record-label">${r.label}</span>
+        <span class="record-value">${r.value}</span>
+        <span class="record-rank-name">${t('rank.' + info.key)}</span>
+      </div>
+    `;
+  }).join('')}</div>`;
 }
 
 /* Appelé par scene3d.js quand le joueur marche jusqu'à un PNJ. */

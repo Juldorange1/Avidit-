@@ -633,6 +633,54 @@ h1,h2,h3,.badge,.stat .label,.accept-btn,.ghost-btn,button{
 .rules-card::-webkit-scrollbar{ width:6px; }
 .rules-card::-webkit-scrollbar-thumb{ background:var(--gold-dark); border-radius:3px; }
 
+/* ---------- RECORDS ---------- */
+/* Chaque record (voir RECORD_RANKS/getRecords() dans game.js) porte sa
+   propre couleur de rang, injectée en variable CSS `--rank-color` par
+   record — une seule échelle de couleurs pour tous, du Bronze (le plus
+   commun) au Divin (le plus rare), demandé explicitement. */
+.record-list{
+  display:grid;
+  grid-template-columns:repeat(auto-fill, minmax(190px, 1fr));
+  gap:10px;
+  margin:4px 0;
+}
+.record-item{
+  background:linear-gradient(160deg, rgba(40,30,14,0.9), rgba(14,10,5,0.95));
+  border:1px solid color-mix(in srgb, var(--rank-color) 55%, transparent);
+  border-radius:10px;
+  padding:12px 14px;
+  text-align:center;
+}
+.record-label{ display:block; font-size:0.76rem; color:var(--ink-dim); line-height:1.3; margin-bottom:8px; }
+.record-value{
+  display:block;
+  font-family:'Cinzel', serif;
+  font-weight:700;
+  font-size:1.35rem;
+  color:var(--rank-color);
+  text-shadow:0 0 10px color-mix(in srgb, var(--rank-color) 45%, transparent);
+}
+.record-rank-name{
+  display:block;
+  font-size:0.62rem;
+  letter-spacing:0.12em;
+  text-transform:uppercase;
+  color:var(--rank-color);
+  margin-top:5px;
+  opacity:0.9;
+}
+/* Rang Divin : traitement à part (halo animé + valeur en dégradé doré),
+   pour vraiment se démarquer des 5 autres rangs, simplement colorés. */
+.record-rank-divine{ animation:record-divine-glow 2.2s ease-in-out infinite; }
+.record-rank-divine .record-value{
+  background:linear-gradient(180deg, var(--gold-light), var(--gold));
+  -webkit-background-clip:text; background-clip:text; color:transparent;
+}
+@keyframes record-divine-glow{
+  0%,100%{ box-shadow:0 0 8px rgba(232,182,79,0.25); }
+  50%{ box-shadow:0 0 22px rgba(232,182,79,0.65); }
+}
+
 /* ---------- SETTINGS / KEYBINDS ---------- */
 .settings-card{ max-width:520px; text-align:left; max-height:80vh; overflow-y:auto; }
 .keybind-list{ display:flex; flex-direction:column; gap:8px; margin:14px 0; }
