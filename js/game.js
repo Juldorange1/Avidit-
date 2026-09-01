@@ -119,12 +119,12 @@ function defaultMeta() {
       npc2DialogueIndex: -1,
       npc3DialogueIndex: -1,
     },
-    // ---- statistiques permanentes (menu Succès/Records) ----
+    // ---- statistiques permanentes (menu Records) ----
     stats: {
       maxEnergy: 0,
       maxTurnsPassed: 0,   // record de salles parcourues sans réinitialisation du dé
-      totalRooms: 0,       // total de salles traversées, toutes parties confondues
-      totalGoldSpent: 0,   // total dépensé auprès des PNJ
+      maxOnesRerolledInRun: 0, // le plus de "1" relancés (token Rejet ou % PNJ 2) cumulés en une seule partie — voir endTurn()
+      totalGoldBanked: 0,      // or total banqué (cashout + portes bonus PNJ 3), toutes parties confondues — voir bankGold()
       maxRunGold: 0,       // "or de partie" (effectiveGold()) maximal jamais atteint
     },
     moveKeys: { ...DEFAULT_MOVE_KEYS },
@@ -214,6 +214,7 @@ function newRun() {
       rajeunBonus: 0,
       antiCharges: 0,
       rerollTokens: 0,
+      onesRerolledThisRun: 0, // cumul des "1" relancés (token Rejet ou % PNJ 2) depuis le début de CETTE partie — voir endTurn()/RECORD "le plus de 1 relancés"
       pendingMines: [],
       usedDouble: false,
       alive: true,
@@ -328,7 +329,6 @@ function startNewTurn() {
   run.npcChanceBoostNextRoom = false;
   run.roomNpcs = NPC_IDS.filter(() => Math.random() < npcChance);
 
-  meta.stats.totalRooms += 1;
   saveMeta();
 
   render();
@@ -370,9 +370,19 @@ function applyAction(key) {
   run.costs[key] = Math.ceil(run.costs[key] * 1.2); // l'escalade porte sur le coût de base, pas sur le coût déjà réduit
 
   if (key === run.npc3BonusDoor && meta.npc.npc3DoorBonus > 0) {
-    meta.gold += meta.npc.npc3DoorBonus; // directement banqué, permanent — voir PNJ 3
-    saveMeta();
+    bankGold(meta.npc.npc3DoorBonus); // directement banqué, permanent — voir PNJ 3
   }
+}
+
+/* Seul point d'entrée qui ajoute de l'or PERMANENT (meta.gold) via une vraie
+   action de jeu (cashout, portes bonus PNJ 3) — PAS le bouton de triche
+   "+100 or" des Paramètres, qui reste un simple ajout direct pour ne pas
+   fausser ce record. Centralisé ici pour que meta.stats.totalGoldBanked ne
+   puisse jamais dériver de meta.gold (un seul endroit à tenir à jour). */
+function bankGold(amount) {
+  meta.gold += amount;
+  meta.stats.totalGoldBanked += amount;
+  saveMeta();
 }
 
 /* Un chemin choisi (marché, ou raccourci clavier) : applique son effet
@@ -414,8 +424,7 @@ function applySpecialBonusDoor(id) {
     run.energy += meta.npc.npc2DoorBonus;
   }
   if (id === run.npc3BonusDoor && meta.npc.npc3DoorBonus > 0) {
-    meta.gold += meta.npc.npc3DoorBonus;
-    saveMeta();
+    bankGold(meta.npc.npc3DoorBonus);
   }
 }
 
@@ -425,7 +434,7 @@ function applySpecialBonusDoor(id) {
    contrairement à l'ancien "Terminer" qui y mettait fin. */
 function collectGold() {
   const gained = effectiveGold();
-  meta.gold += gained;
+  bankGold(gained);
   run.gold = 0;
   saveMeta();
   render();
@@ -493,6 +502,9 @@ function endTurn() {
     if (run.rerollTokens > 0) run.rerollTokens -= 1;
     value = rollJudgmentDie(facesAtRollTime);
     rollSequence.push(value);
+    // record "le plus de 1 relancés en une seule partie" (meta.stats.maxOnesRerolledInRun,
+    // voir render()) : cumulé pour TOUTE la partie en cours, pas juste ce tour.
+    run.onesRerolledThisRun = (run.onesRerolledThisRun || 0) + 1;
   }
 
   const lostGold = value === 1;
@@ -567,11 +579,12 @@ function render() {
   if (!run) return;
   saveRun(); // à chaque rendu = à chaque changement d'état visible, jamais par frame (voir saveRun())
 
-  // records permanents (menu Succès) — vérifiés à chaque rendu, donc après
+  // records permanents (menu Records) — vérifiés à chaque rendu, donc après
   // quasiment toute action affectant l'un de ces chiffres.
   let statsChanged = false;
   if (run.energy > meta.stats.maxEnergy) { meta.stats.maxEnergy = run.energy; statsChanged = true; }
   if (run.turnsPassed > meta.stats.maxTurnsPassed) { meta.stats.maxTurnsPassed = run.turnsPassed; statsChanged = true; }
+  if ((run.onesRerolledThisRun || 0) > meta.stats.maxOnesRerolledInRun) { meta.stats.maxOnesRerolledInRun = run.onesRerolledThisRun; statsChanged = true; }
   const runGoldNow = effectiveGold();
   if (runGoldNow > meta.stats.maxRunGold) { meta.stats.maxRunGold = runGoldNow; statsChanged = true; }
   if (statsChanged) saveMeta();
@@ -768,7 +781,6 @@ function buyNpcOffer(npcId, key) {
     } else {
       return false;
     }
-    meta.stats.totalGoldSpent += spent;
     saveMeta();
     render();
     if (window.SFX) SFX.purchase();
@@ -803,7 +815,6 @@ function buyNpcOffer(npcId, key) {
     } else {
       return false;
     }
-    meta.stats.totalGoldSpent += spent;
     saveMeta();
     render();
     if (window.SFX) SFX.purchase();
@@ -900,8 +911,8 @@ function getRecords() {
     { label: t('stats.lowestUpgrade.title'), value: getLowestUpgrade().level, thresholds: [1, 3, 6, 10, 15] },
     { label: t('stats.maxEnergy'), value: meta.stats.maxEnergy, thresholds: [30, 80, 200, 500, 1200] },
     { label: t('stats.maxTurns'), value: meta.stats.maxTurnsPassed, thresholds: [5, 12, 25, 40, 60] },
-    { label: t('stats.totalRooms'), value: meta.stats.totalRooms, thresholds: [50, 200, 600, 1500, 4000] },
-    { label: t('stats.totalGoldSpent'), value: meta.stats.totalGoldSpent, thresholds: [500, 2000, 8000, 25000, 80000] },
+    { label: t('stats.maxOnesRerolled'), value: meta.stats.maxOnesRerolledInRun, thresholds: [1, 3, 7, 15, 30] },
+    { label: t('stats.totalGoldBanked'), value: meta.stats.totalGoldBanked, thresholds: [1000, 4000, 15000, 50000, 150000] },
     { label: t('stats.maxRunGold'), value: meta.stats.maxRunGold, thresholds: [100, 500, 2000, 8000, 30000] },
   ];
 }

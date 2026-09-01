@@ -77,8 +77,8 @@ const STRINGS = {
     'stats.lowestUpgrade.title': 'Amélioration la moins avancée',
     'stats.maxEnergy': 'Énergie maximale atteinte',
     'stats.maxTurns': 'Le plus de salles parcourues sans réinitialisation du dé',
-    'stats.totalRooms': 'Nombre total de salles traversées',
-    'stats.totalGoldSpent': 'Or total dépensé auprès des PNJ',
+    'stats.maxOnesRerolled': 'Le plus de "1" relancés en une seule partie',
+    'stats.totalGoldBanked': 'Or total banqué',
     'stats.maxRunGold': 'Or de partie maximal atteint',
 
     'rank.bronze': 'Bronze',
@@ -258,8 +258,8 @@ const STRINGS = {
     'stats.lowestUpgrade.title': 'Least advanced upgrade',
     'stats.maxEnergy': 'Highest energy reached',
     'stats.maxTurns': 'Most rooms crossed without a wheel reset',
-    'stats.totalRooms': 'Total rooms crossed',
-    'stats.totalGoldSpent': 'Total gold spent with NPCs',
+    'stats.maxOnesRerolled': 'Most 1s rerolled in a single run',
+    'stats.totalGoldBanked': 'Total gold banked',
     'stats.maxRunGold': 'Highest run gold reached',
 
     'rank.bronze': 'Bronze',
