@@ -1,0 +1,20 @@
+Modèles téléchargés depuis Sketchfab par l'utilisateur (compte personnel gratuit),
+tous sous licence CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/) —
+attribution obligatoire, usage commercial autorisé.
+
+--- Le Forgeron d'Énergie (npc2) ---
+"The Noble Craftsman"
+https://sketchfab.com/3d-models/the-noble-craftsman-0e8ff87ffaa24731b2474badebca870d
+par olmopotums (https://sketchfab.com/olmopotums)
+
+--- Le Changeur d'Or (npc3) ---
+"Nobleman Rigged 3D Model"
+https://sketchfab.com/3d-models/nobleman-rigged-3d-model-eab176a4a5a644eea446114f3bc19403
+par CG-Moon (https://sketchfab.com/CG-Moon)
+
+--- Le Parieur (npc1) — PAS ACTUELLEMENT UTILISÉ ---
+"V2"
+https://sketchfab.com/3d-models/v2-027e1e3c21d7477d93a2189283b9c910
+par miladaslani1991 (https://sketchfab.com/miladaslani1991)
+Fichiers conservés dans gambler/ mais retirés de MODEL_FILES (voir scene3d.js) :
+squelette exporté cassé, le PNJ 1 utilise le repli procédural en attendant.

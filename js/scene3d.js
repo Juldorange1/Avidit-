@@ -644,12 +644,23 @@ function buildEnvironmentMap() {
 // pack d'origine (town/dungeon/chars, chacun dans son propre sous-dossier) :
 // chaque .glb Kenney référence sa texture via un chemin RELATIF
 // (Textures/colormap.png) partagé par tout le pack — les mélanger dans un
-// seul dossier aurait fait collisionner 3 colormap.png différents.
+// seul dossier aurait fait collisionner 3 colormap.png différents. Même
+// principe pour les 3 PNJ Sketchfab (voir assets/models/sketchfab/
+// LICENSE-sketchfab.txt, CC-BY-4.0, téléchargés par l'utilisateur — les
+// anciens modèles Kenney jugés trop stylisés, pas assez distincts entre eux
+// ni fidèles au rôle de chaque PNJ, remplacés) : un sous-dossier par PNJ.
 const MODEL_FILES = {
   door: 'assets/models/town/door.glb',
-  npc1: 'assets/models/chars/npc1.glb',
-  npc2: 'assets/models/chars/npc2.glb',
-  npc3: 'assets/models/chars/npc3.glb',
+  // npc1 ("gambler", assets/models/sketchfab/gambler/) VOLONTAIREMENT absent
+  // d'ici : son squelette exporté est cassé (bind pose incohérente — testé en
+  // détail : géométrie/textures/scale tous corrects, aucune erreur GL, mais
+  // le maillage rigué se déforme hors de toute position sensée et reste
+  // occulté par le décor). buildNpc() a déjà un repli procédural quand
+  // MODELS[id] est absent (voir plus bas) — utilisé ici plutôt que
+  // d'afficher un PNJ invisible/cassé. Les fichiers restent sur disque en
+  // attendant un modèle de remplacement.
+  npc2: 'assets/models/sketchfab/smith/scene.gltf',
+  npc3: 'assets/models/sketchfab/noble/scene.gltf',
   // décor : Poly Haven (CC0, mêmes assets que les textures de murs/sol —
   // vrai PBR photoscanné, pas du low-poly stylisé) plutôt que Kenney, pour
   // rester visuellement cohérent avec les murs/sol ET pour un rendu bien
@@ -1233,7 +1244,15 @@ function npcModelScale(id) {
   if (npcModelScaleCache[id] != null) return npcModelScaleCache[id];
   const box = new THREE.Box3().setFromObject(MODELS[id]);
   const height = box.max.y - box.min.y;
-  const scale = height > 0.001 ? NPC_TARGET_HEIGHT / height : 1;
+  // seuil volontairement TRÈS bas (pas 0.001) : un des modèles Sketchfab
+  // (npc1, rigué) a une échelle "monde" native minuscule (~0.002, un facteur
+  // d'unités visiblement mal appliqué à l'export) qui donne une hauteur
+  // réelle mais toute petite (~0.0007) — avec l'ancien seuil ça tombait dans
+  // le repli "pas de boîte englobante" et le PNJ s'affichait minuscule au
+  // lieu d'une vraie taille humaine. 1e-6 ne filtre plus qu'une VRAIE boîte
+  // dégénérée (taille nulle), jamais un modèle juste exporté dans des unités
+  // inhabituelles.
+  const scale = height > 1e-6 ? NPC_TARGET_HEIGHT / height : 1;
   npcModelScaleCache[id] = scale;
   return scale;
 }
