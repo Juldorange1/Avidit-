@@ -10,16 +10,16 @@ const BASE_ENERGY = 10;
 const ACTION_BASE_COST = { mine: 4, canal: 12, anti: 7, rejet: 30, rajeun: 10 };
 
 const ACTIONS = [
-  { key: 'mine', name: 'Mine',
-    desc: () => `+1 or dans 10 tours.` },
-  { key: 'canal', name: 'Canalisation',
-    desc: () => `+1 énergie/tour, toute la partie.` },
-  { key: 'anti', name: 'Anti-destinée',
-    desc: () => `Prochain lancer : jamais 1.` },
-  { key: 'rejet', name: 'Rejet',
-    desc: () => `Relance : sauve d'un 1.` },
-  { key: 'rajeun', name: 'Rajeunissement',
-    desc: () => `+1 face au dé, toute la partie.` },
+  { key: 'mine', get name() { return t('action.mine.name'); },
+    desc: () => t('action.mine.desc') },
+  { key: 'canal', get name() { return t('action.canal.name'); },
+    desc: () => t('action.canal.desc') },
+  { key: 'anti', get name() { return t('action.anti.name'); },
+    desc: () => t('action.anti.desc') },
+  { key: 'rejet', get name() { return t('action.rejet.name'); },
+    desc: () => t('action.rejet.desc') },
+  { key: 'rajeun', get name() { return t('action.rajeun.name'); },
+    desc: () => t('action.rajeun.desc') },
 ];
 
 /* Chemins pouvant recevoir une porte bonus PNJ (coût réduit/négatif ou or
@@ -34,7 +34,8 @@ const BONUS_DOOR_POOL = [...ACTIONS.map(a => a.key), 'double', 'skip'];
    PNJ plus bas. Chaque PNJ a 1.3% de chance d'apparaître dans une salle
    donnée (indépendamment des deux autres), sauf boost ponctuel du PNJ 1. */
 const NPC_IDS = ['npc1', 'npc2', 'npc3'];
-const NPC_NAMES = { npc1: 'Le Parieur', npc2: "Le Forgeron d'Énergie", npc3: "Le Changeur d'Or" };
+function npcName(id) { return t('npc.' + id + '.name'); }
+window.npcName = npcName; // utilisé par scene3d.js pour l'étiquette 3D au-dessus du PNJ
 const NPC_BASE_CHANCE = 0.013;
 const NPC_CHANCE_BOOST_MULT = 20;
 const NPC1_PICKS_PER_EXTRA_OFFER = 10;
@@ -43,11 +44,8 @@ const NPC1_PICKS_PER_EXTRA_OFFER = 10;
    ambiance) — le rendu de chacune est entièrement géré par scene3d.js
    (ZONE_DEFS), game.js ne suit que l'index courant. Toutes les 200 salles
    traversées, on bascule sur une autre zone tirée au hasard. */
-const ZONE_NAMES = [
-  'Donjon de pierre', 'Cabane de bois', 'Temple doré', 'Antre de cristal',
-  'Ruines englouties par la jungle', 'Cité engloutie', 'Forge infernale', 'Bastion de glace',
-];
-const ZONE_COUNT = ZONE_NAMES.length;
+const ZONE_COUNT = 8;
+function zoneName(idx) { return t('zone.' + idx); }
 const ROOMS_PER_ZONE = 200;
 
 /* Les 8 chemins possibles à un carrefour : 5 actions + 3 spéciaux.
@@ -60,13 +58,13 @@ const PATH_IDS = ['mine', 'canal', 'anti', 'rejet', 'rajeun', 'skip', 'double', 
    touche), ce qui fait marcher WASD et ZQSD indifféremment selon la disposition. */
 const DEFAULT_MOVE_KEYS = { forward: 'KeyW', back: 'KeyS', left: 'KeyA', right: 'KeyD', jump: 'Space' };
 const MOVE_KEY_ORDER = ['forward', 'back', 'left', 'right', 'jump'];
-const MOVE_KEY_LABELS = { forward: 'Avancer', back: 'Reculer', left: 'Aller à gauche', right: 'Aller à droite', jump: 'Sauter' };
+function moveKeyLabel(dir) { return t('moveKey.' + dir); }
 
 const DICE_SPEEDS = {
-  lente: { label: 'Lente', mult: 1.6 },
-  normale: { label: 'Normale', mult: 1 },
-  rapide: { label: 'Rapide', mult: 0.5 },
-  instant: { label: 'Instantanée', mult: 0.12 },
+  lente: { mult: 1.6 },
+  normale: { mult: 1 },
+  rapide: { mult: 0.5 },
+  instant: { mult: 0.12 },
 };
 const SPIN_BASE_MS = 1150;
 const HOLD_BASE_MS = 1000;
@@ -113,6 +111,7 @@ function defaultMeta() {
     moveKeys: { ...DEFAULT_MOVE_KEYS },
     diceSpeed: 'normale',
     sfxVolume: 0.6,
+    lang: (typeof LANG_DEFAULT !== 'undefined') ? LANG_DEFAULT : 'fr',
   };
 }
 
@@ -135,6 +134,7 @@ function loadMeta() {
       moveKeys: { ...d.moveKeys, ...(parsed.moveKeys || {}) },
       diceSpeed: DICE_SPEEDS[parsed.diceSpeed] ? parsed.diceSpeed : d.diceSpeed,
       sfxVolume: typeof parsed.sfxVolume === 'number' ? parsed.sfxVolume : d.sfxVolume,
+      lang: (typeof LANGS !== 'undefined' && LANGS.includes(parsed.lang)) ? parsed.lang : d.lang,
     };
   } catch (e) {
     return defaultMeta();
@@ -537,7 +537,7 @@ function render() {
   if (statsChanged) saveMeta();
 
   document.getElementById('facesHudVal').textContent = currentFaces();
-  document.getElementById('zoneHudVal').textContent = ZONE_NAMES[run.zoneIndex];
+  document.getElementById('zoneHudVal').textContent = zoneName(run.zoneIndex);
   document.getElementById('energyVal').textContent = run.energy;
   document.getElementById('goldRun').textContent = effectiveGold();
   document.getElementById('goldBank').textContent = meta.gold;
@@ -579,8 +579,8 @@ function bonusDoorInfo(id) {
   const bonusEnergy = id === run.npc2BonusDoor && meta.npc.npc2DoorBonus > 0;
   const bonusGold = id === run.npc3BonusDoor && meta.npc.npc3DoorBonus > 0;
   let suffix = '';
-  if (bonusEnergy) suffix += ` (+${meta.npc.npc2DoorBonus} énergie !)`;
-  if (bonusGold) suffix += ` (+${meta.npc.npc3DoorBonus} or banqué)`;
+  if (bonusEnergy) suffix += t('path.bonusDoor.energy', { n: meta.npc.npc2DoorBonus });
+  if (bonusGold) suffix += t('path.bonusDoor.gold', { n: meta.npc.npc3DoorBonus });
   return { bonusEnergy, bonusGold, suffix };
 }
 
@@ -593,26 +593,26 @@ function getCurrentPaths() {
         const cost = effectiveActionCost(id);
         let desc = action.desc();
         const info = bonusDoorInfo(id);
-        if (info.bonusEnergy) desc += cost < 0 ? ` (donne ${-cost} énergie !)` : ` (coût -${meta.npc.npc2DoorBonus})`;
-        if (info.bonusGold) desc += ` (+${meta.npc.npc3DoorBonus} or banqué)`;
+        if (info.bonusEnergy) desc += ' ' + (cost < 0 ? t('action.bonusEnergyGive', { n: -cost }) : t('action.bonusEnergyReduce', { n: meta.npc.npc2DoorBonus }));
+        if (info.bonusGold) desc += ' ' + t('action.bonusGold', { n: meta.npc.npc3DoorBonus });
         return {
           id, kind: 'action',
           name: action.name, desc,
-          cost, currency: 'énergie',
+          cost, currency: t('currency.energy'),
           affordable: canAffordAction(id),
           bonusEnergy: info.bonusEnergy, bonusGold: info.bonusGold,
         };
       }
       if (id === 'skip') {
         const info = bonusDoorInfo(id);
-        return { id, kind: 'special', name: 'Ne rien faire', desc: 'Passe ce tour.' + info.suffix, affordable: true, bonusEnergy: info.bonusEnergy, bonusGold: info.bonusGold };
+        return { id, kind: 'special', name: t('path.skip.name'), desc: t('path.skip.desc') + info.suffix, affordable: true, bonusEnergy: info.bonusEnergy, bonusGold: info.bonusGold };
       }
       if (id === 'double') {
         const info = bonusDoorInfo(id);
-        return { id, kind: 'special', name: "Doubler l'énergie", desc: '×2 immédiat, 1 seule fois.' + info.suffix, affordable: true, bonusEnergy: info.bonusEnergy, bonusGold: info.bonusGold };
+        return { id, kind: 'special', name: t('path.double.name'), desc: t('path.double.desc') + info.suffix, affordable: true, bonusEnergy: info.bonusEnergy, bonusGold: info.bonusGold };
       }
       if (id === 'cashout') {
-        return { id, kind: 'special', name: "Récupérer l'or", desc: `Banque ${effectiveGold()} or. La partie continue.`, affordable: true };
+        return { id, kind: 'special', name: t('path.cashout.name'), desc: t('path.cashout.desc', { gold: effectiveGold() }), affordable: true };
       }
       return null;
     })
@@ -628,7 +628,7 @@ function getCurrentNpcs() {
 /* Zone visuelle courante — scene3d.js l'appelle à la construction de CHAQUE
    salle (y compris la salle préchargée) pour savoir quel décor utiliser. */
 function getCurrentZone() {
-  return { index: run.zoneIndex, name: ZONE_NAMES[run.zoneIndex] };
+  return { index: run.zoneIndex, name: zoneName(run.zoneIndex) };
 }
 
 /* ============================= PNJ ============================= */
@@ -639,40 +639,40 @@ function npc1MaxOffers() {
 
 function getNpc1Offers() {
   return [
-    { key: 'facesForDouble', name: 'Marché du hasard',
-      desc: `-8 faces au dé du jugement, mais ×2 énergie immédiat ET un nouveau doubleur d'énergie utilisable (même si le vôtre est déjà dépensé).` },
-    { key: 'npcChance', name: 'Flair des voyageurs',
-      desc: `Tous les PNJ ont ${NPC_CHANCE_BOOST_MULT}× plus de chance d'apparaître dans la PROCHAINE salle.` },
+    { key: 'facesForDouble', name: t('npc1.facesForDouble.name'),
+      desc: t('npc1.facesForDouble.desc') },
+    { key: 'npcChance', name: t('npc1.npcChance.name'),
+      desc: t('npc1.npcChance.desc', { mult: NPC_CHANCE_BOOST_MULT }) },
   ];
 }
 
 function getNpc2Offers() {
   const offers = [];
   if (!meta.npc.npc2DoorUnlocked) {
-    offers.push({ key: 'unlockDoor', name: 'Porte allégée', cost: 400,
-      desc: `Débloque : dans chaque salle, une porte a son coût en énergie réduit (peut devenir négatif — la porte donne alors de l'énergie).` });
+    offers.push({ key: 'unlockDoor', name: t('npc2.unlockDoor.name'), cost: 400,
+      desc: t('npc2.unlockDoor.desc') });
   } else {
-    offers.push({ key: 'boostDoor', name: 'Porte allégée', cost: meta.npc.npc2BoostDoorCost,
-      desc: `Réduction actuelle : ${meta.npc.npc2DoorBonus} énergie. Encore +10.` });
+    offers.push({ key: 'boostDoor', name: t('npc2.boostDoor.name'), cost: meta.npc.npc2BoostDoorCost,
+      desc: t('npc2.boostDoor.desc', { n: meta.npc.npc2DoorBonus }) });
   }
-  offers.push({ key: 'rerollPct', name: 'Instinct de survie', cost: meta.npc.npc2RerollCost,
-    desc: `Chance de relancer automatiquement un 1 : ${meta.npc.npc2RerollPct}%. Encore +1%.` });
+  offers.push({ key: 'rerollPct', name: t('npc2.rerollPct.name'), cost: meta.npc.npc2RerollCost,
+    desc: t('npc2.rerollPct.desc', { pct: meta.npc.npc2RerollPct }) });
   return offers;
 }
 
 function getNpc3Offers() {
   const offers = [
-    { key: 'extraFaces', name: 'Horloge Agrandie', cost: meta.npc.npc3ExtraFacesCost,
-      desc: `Faces de base de la roue : ${BASE_FACES + meta.lvl.extraFaces}. Encore +1.` },
-    { key: 'turn1Energy', name: 'Réveil Vif', cost: meta.npc.npc3Turn1EnergyCost,
-      desc: `Énergie bonus au 1er tour de chaque partie : +${meta.lvl.turn1Energy}. Encore +10.` },
+    { key: 'extraFaces', name: t('npc3.extraFaces.name'), cost: meta.npc.npc3ExtraFacesCost,
+      desc: t('npc3.extraFaces.desc', { n: BASE_FACES + meta.lvl.extraFaces }) },
+    { key: 'turn1Energy', name: t('npc3.turn1Energy.name'), cost: meta.npc.npc3Turn1EnergyCost,
+      desc: t('npc3.turn1Energy.desc', { n: meta.lvl.turn1Energy }) },
   ];
   if (!meta.npc.npc3DoorUnlocked) {
-    offers.push({ key: 'unlockDoor', name: 'Porte généreuse', cost: 400,
-      desc: `Débloque : dans chaque salle, une porte rapporte de l'or banqué directement quand on la traverse.` });
+    offers.push({ key: 'unlockDoor', name: t('npc3.unlockDoor.name'), cost: 400,
+      desc: t('npc3.unlockDoor.desc') });
   } else {
-    offers.push({ key: 'boostDoor', name: 'Porte généreuse', cost: meta.npc.npc3BoostDoorCost,
-      desc: `Bonus actuel : +${meta.npc.npc3DoorBonus} or banqué. Encore +10.` });
+    offers.push({ key: 'boostDoor', name: t('npc3.boostDoor.name'), cost: meta.npc.npc3BoostDoorCost,
+      desc: t('npc3.boostDoor.desc', { n: meta.npc.npc3DoorBonus }) });
   }
   return offers;
 }
@@ -780,11 +780,11 @@ function buyNpcOffer(npcId, key) {
    incrément — +1 pour extraFaces/npc2RerollPct, +10 pour les trois autres). */
 function getUpgradeLevels() {
   return [
-    { name: 'Horloge Agrandie (PNJ 3)', level: meta.lvl.extraFaces },
-    { name: 'Réveil Vif (PNJ 3)', level: meta.lvl.turn1Energy / 10 },
-    { name: 'Porte allégée (PNJ 2)', level: meta.npc.npc2DoorBonus / 10 },
-    { name: 'Instinct de survie (PNJ 2)', level: meta.npc.npc2RerollPct },
-    { name: 'Porte généreuse (PNJ 3)', level: meta.npc.npc3DoorBonus / 10 },
+    { name: t('upgrade.extraFaces'), level: meta.lvl.extraFaces },
+    { name: t('upgrade.turn1Energy'), level: meta.lvl.turn1Energy / 10 },
+    { name: t('upgrade.npc2DoorBonus'), level: meta.npc.npc2DoorBonus / 10 },
+    { name: t('upgrade.npc2RerollPct'), level: meta.npc.npc2RerollPct },
+    { name: t('upgrade.npc3DoorBonus'), level: meta.npc.npc3DoorBonus / 10 },
   ];
 }
 
@@ -797,15 +797,15 @@ function renderStats() {
   const lowest = getLowestUpgrade();
   const body = document.getElementById('statsBody');
   body.innerHTML = `
-    <h3>Amélioration la moins avancée</h3>
-    <p>${lowest.name} — niveau <strong>${lowest.level}</strong></p>
-    <h3>Records</h3>
+    <h3>${t('stats.lowestUpgrade.title')}</h3>
+    <p>${lowest.name} — ${t('stats.lowestUpgrade.level')} <strong>${lowest.level}</strong></p>
+    <h3>${t('stats.records.title')}</h3>
     <ul>
-      <li>Énergie maximale atteinte : <strong>${meta.stats.maxEnergy}</strong></li>
-      <li>Le plus de salles parcourues sans réinitialisation du dé : <strong>${meta.stats.maxTurnsPassed}</strong></li>
-      <li>Nombre total de salles traversées : <strong>${meta.stats.totalRooms}</strong></li>
-      <li>Or total dépensé auprès des PNJ : <strong>${meta.stats.totalGoldSpent}</strong></li>
-      <li>Or de partie maximal atteint : <strong>${meta.stats.maxRunGold}</strong></li>
+      <li>${t('stats.maxEnergy')} : <strong>${meta.stats.maxEnergy}</strong></li>
+      <li>${t('stats.maxTurns')} : <strong>${meta.stats.maxTurnsPassed}</strong></li>
+      <li>${t('stats.totalRooms')} : <strong>${meta.stats.totalRooms}</strong></li>
+      <li>${t('stats.totalGoldSpent')} : <strong>${meta.stats.totalGoldSpent}</strong></li>
+      <li>${t('stats.maxRunGold')} : <strong>${meta.stats.maxRunGold}</strong></li>
     </ul>
   `;
 }
@@ -833,14 +833,17 @@ function talkToNpc(npcId) {
 window.talkToNpc = talkToNpc;
 
 function renderNpcOverlay(npcId) {
-  document.getElementById('npcName').textContent = NPC_NAMES[npcId];
+  document.getElementById('npcName').textContent = npcName(npcId);
   document.getElementById('npcGoldBank').textContent = meta.gold;
 
   const sub = document.getElementById('npcSub');
   if (npcId === 'npc1') {
     sub.hidden = false;
-    sub.textContent = `Choix restants pour cette visite : ${run.npc1RemainingPicks} `
-      + `(un choix de plus tous les ${NPC1_PICKS_PER_EXTRA_OFFER} pris — ${meta.npc.npc1Picks} au total jusqu'ici).`;
+    sub.textContent = t('npc.npc1.sub', {
+      remaining: run.npc1RemainingPicks,
+      every: NPC1_PICKS_PER_EXTRA_OFFER,
+      total: meta.npc.npc1Picks,
+    });
   } else {
     sub.hidden = true;
   }
@@ -850,12 +853,12 @@ function renderNpcOverlay(npcId) {
   getNpcOffers(npcId).forEach(o => {
     const div = document.createElement('div');
     div.className = 'shop-card-item';
-    const costLabel = o.cost != null ? `${o.cost} or` : 'Gratuit';
+    const costLabel = o.cost != null ? `${o.cost} ${t('currency.gold')}` : t('npc.free');
     const disabled = npcId === 'npc1' ? run.npc1RemainingPicks <= 0 : (o.cost != null && meta.gold < o.cost);
     div.innerHTML = `
       <span class="name">${o.name}</span>
       <span class="desc">${o.desc}</span>
-      <button class="buy-btn" ${disabled ? 'disabled' : ''}>Prendre — ${costLabel}</button>
+      <button class="buy-btn" ${disabled ? 'disabled' : ''}>${t('npc.buyPrefix')} ${costLabel}</button>
     `;
     div.querySelector('.buy-btn').addEventListener('click', () => {
       if (buyNpcOffer(npcId, o.key)) renderNpcOverlay(npcId);
@@ -877,8 +880,8 @@ function hideOverlay(id) {
 
 function codeLabel(code) {
   if (!code) return '—';
-  if (code === 'Escape') return 'Échap';
-  if (code === 'Space') return 'Espace';
+  if (code === 'Escape') return t('keyLabel.escape');
+  if (code === 'Space') return t('keyLabel.space');
   if (code === 'ArrowUp') return '↑';
   if (code === 'ArrowDown') return '↓';
   if (code === 'ArrowLeft') return '←';
@@ -889,6 +892,7 @@ function codeLabel(code) {
 }
 
 function renderSettings() {
+  renderLanguageOptions();
   renderSpeedOptions();
   document.getElementById('sfxVolumeSlider').value = Math.round(meta.sfxVolume * 100);
 
@@ -898,14 +902,41 @@ function renderSettings() {
     const row = document.createElement('div');
     row.className = 'keybind-row';
     row.innerHTML = `
-      <span class="kb-name">${MOVE_KEY_LABELS[dir]}</span>
+      <span class="kb-name">${moveKeyLabel(dir)}</span>
       <span class="kb-controls">
         <span class="kb-key">${codeLabel(meta.moveKeys[dir])}</span>
-        <button class="kb-change-btn">Changer</button>
+        <button class="kb-change-btn">${t('settings.changeKey')}</button>
       </span>
     `;
     row.querySelector('.kb-change-btn').addEventListener('click', (e) => startRebind(dir, e.currentTarget));
     list.appendChild(row);
+  });
+}
+
+/* Sélecteur de langue (Paramètres) — même gabarit visuel que le sélecteur de
+   vitesse du dé juste en dessous. Changer de langue met à jour meta.lang,
+   ré-applique toute la chrome statique (data-i18n) ET re-rend tout ce qui
+   dépend du texte traduit et est actuellement visible (HUD, salle 3D avec
+   ses étiquettes de chemin/PNJ, ce panneau lui-même). */
+function renderLanguageOptions() {
+  const wrap = document.getElementById('languageOptions');
+  if (!wrap || typeof LANGS === 'undefined') return;
+  wrap.innerHTML = '';
+  LANGS.forEach(code => {
+    const btn = document.createElement('button');
+    btn.className = 'speed-btn' + (meta.lang === code ? ' active' : '');
+    btn.textContent = LANG_LABELS[code] || code;
+    btn.addEventListener('click', () => {
+      if (meta.lang === code) return;
+      meta.lang = code;
+      saveMeta();
+      document.documentElement.lang = code;
+      applyStaticI18n();
+      renderSettings();
+      render();
+      if (window.regenerateHub) window.regenerateHub();
+    });
+    wrap.appendChild(btn);
   });
 }
 
@@ -915,7 +946,7 @@ function renderSpeedOptions() {
   Object.keys(DICE_SPEEDS).forEach(key => {
     const btn = document.createElement('button');
     btn.className = 'speed-btn' + (meta.diceSpeed === key ? ' active' : '');
-    btn.textContent = DICE_SPEEDS[key].label;
+    btn.textContent = t('diceSpeed.' + key);
     btn.addEventListener('click', () => {
       meta.diceSpeed = key;
       saveMeta();
@@ -929,7 +960,7 @@ function renderSpeedOptions() {
 function startRebind(dir, buttonEl) {
   if (rebindListenerActive) return;
   rebindListenerActive = true;
-  buttonEl.textContent = 'Appuyez sur une touche…';
+  buttonEl.textContent = t('settings.pressKey');
   buttonEl.classList.add('listening');
 
   const handler = (e) => {
@@ -1040,7 +1071,7 @@ function wireEvents() {
     renderSettings();
   });
   document.getElementById('btnResetSave').addEventListener('click', () => {
-    if (confirm('Réinitialiser toute la progression permanente (or banqué, achats des PNJ et records) ?')) {
+    if (confirm(t('settings.resetSave.confirm'))) {
       localStorage.removeItem(SAVE_KEY);
       meta = defaultMeta();
       applyDiceSpeed();
@@ -1065,6 +1096,8 @@ function wireEvents() {
    pour verrouiller le curseur) sert de geste utilisateur pour débloquer
    l'audio — voir le gestionnaire de clic dans scene3d.js. */
 function init() {
+  document.documentElement.lang = meta.lang;
+  if (window.applyStaticI18n) applyStaticI18n();
   buildStars();
   buildDial();
   applyDiceSpeed();

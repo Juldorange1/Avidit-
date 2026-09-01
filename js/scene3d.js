@@ -78,10 +78,21 @@ const FLOOR_R = WALL_R + 0.3;      // sol intérieur, légèrement plus large qu
 
 const MOVE_SPEED = 6.2;
 const LOOK_SENS = 0.0022;
+const TOUCH_LOOK_SENS = 0.0034; // glisser-pour-regarder tactile : deltas en px comme la souris, un peu plus sensible (pas de vrai accélérateur physique)
 const PITCH_LIMIT = Math.PI / 2 - 0.02;
 const EYE_HEIGHT = 1.65;
 const GRAVITY = -20;
 const JUMP_SPEED = 6.3;
+
+// Pointer Lock (souris) n'existe pas sur la plupart des navigateurs mobiles
+// (aucun support iOS Safari) — sur un appareil tactile, on ne DOIT jamais
+// tenter requestPointerLock() (échouerait silencieusement ou pire) et on
+// utilise un contrôle entièrement différent (joystick + glisser-regarder +
+// boutons, voir setupTouchControls()). Détection au chargement, ne change
+// jamais en cours de partie.
+const isTouchDevice = (typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches)
+  || (navigator.maxTouchPoints || 0) > 0
+  || 'ontouchstart' in window;
 
 const WORLD_R = 40; // rayon du sol extérieur visible brièvement pendant la traversée entre deux salles (aucun décor dessus)
 
@@ -253,6 +264,13 @@ function initThree() {
     if (window.SFX) SFX.init(); // filet de sécurité : débloque l'audio même si le 1er clic (bouton "Entrer") n'a pas suffi
     const playArea = document.getElementById('playArea');
     if (playArea.hidden) return;
+    if (isTouchDevice) {
+      // pas de Pointer Lock sur tactile (voir isTouchDevice) : le premier
+      // "tap" engage directement les contrôles tactiles, sans passer par le
+      // navigateur — voir setupTouchControls()/updateTouchUIVisibility().
+      engageTouchControls();
+      return;
+    }
     if (document.pointerLockElement !== renderer.domElement) {
       const p = renderer.domElement.requestPointerLock();
       if (p && typeof p.catch === 'function') p.catch(() => {});
@@ -263,6 +281,14 @@ function initThree() {
     // mettre la touche qui y est dédiée"), ni au clic, ni automatiquement en
     // s'approchant (voir INTERACT_KEY / le retrait de queueRoomNpcs()).
   });
+
+  if (isTouchDevice) {
+    const lockTitle = document.getElementById('lockPromptTitle');
+    const lockHint = document.getElementById('lockPromptHint');
+    if (lockTitle) lockTitle.textContent = (typeof t === 'function') ? t('lock.title.touch') : 'Touchez pour commencer';
+    if (lockHint) lockHint.textContent = (typeof t === 'function') ? t('lock.hint.touch') : '';
+    setupTouchControls(container);
+  }
 
   buildSharedAssets();
   buildStaticScene();
@@ -347,6 +373,150 @@ function isDown(dir) {
     jump: ['Space'],
   }[dir] || [];
   return fallback.some(c => heldCodes.has(c));
+}
+
+/* ============================= CONTRÔLES TACTILES (téléphone/tablette) ============================= */
+/* Aucun Pointer Lock sur tactile (voir isTouchDevice) : `locked` est piloté
+   à la main ici (jamais via onPointerLockChange, qui ne se déclenchera
+   jamais puisqu'on ne demande jamais le Pointer Lock sur ces appareils).
+   Le mouvement RÉUTILISE `heldCodes` avec les mêmes codes de secours que le
+   clavier (ArrowUp/Down/Left/Right, Space — voir isDown() ci-dessus) : zéro
+   changement nécessaire dans updateRoomMovement()/updateGapMovement()/
+   updateJump(), le joystick "appuie sur des touches virtuelles". */
+
+const TOUCH_MOVE_CODES = { forward: 'ArrowUp', back: 'ArrowDown', left: 'ArrowLeft', right: 'ArrowRight' };
+const OVERLAY_IDS = ['npcOverlay', 'rulesOverlay', 'settingsOverlay', 'statsOverlay'];
+
+function anyOverlayVisible() {
+  return OVERLAY_IDS.some(id => {
+    const el = document.getElementById(id);
+    return el && !el.hidden;
+  });
+}
+
+function engageTouchControls() {
+  if (locked) return;
+  locked = true;
+  const lockPrompt = document.getElementById('lockPrompt');
+  if (lockPrompt) lockPrompt.hidden = true;
+}
+
+/* Referme les contrôles tactiles quand un overlay s'ouvre (PNJ/règles/
+   paramètres/succès) — équivalent tactile de document.exitPointerLock()
+   (appelé explicitement par talkToNpc() côté game.js pour le clavier/souris,
+   voir onPointerLockChange). Sans ça, le joueur continuerait à marcher/
+   regarder sous un panneau plein écran. Rappelée chaque frame depuis tick()
+   via updateTouchUIVisibility(), pas seulement à l'ouverture, pour aussi
+   réafficher les contrôles/relancer `locked` à la fermeture d'un overlay. */
+function updateTouchUIVisibility() {
+  if (!isTouchDevice) return;
+  const overlayOpen = anyOverlayVisible();
+  if (overlayOpen && locked) {
+    locked = false;
+    heldCodes.clear();
+  }
+  const el = document.getElementById('touchControls');
+  if (!el) return;
+  const shouldShow = locked && !overlayOpen;
+  if (el.hidden === shouldShow) el.hidden = !shouldShow;
+  const lockPrompt = document.getElementById('lockPrompt');
+  if (lockPrompt) {
+    const playArea = document.getElementById('playArea');
+    lockPrompt.hidden = locked || overlayOpen || (playArea && playArea.hidden);
+  }
+}
+
+/* Glisser-pour-regarder (tout le conteneur SAUF le joystick/les boutons, qui
+   sont des FRÈRES du conteneur — pas des enfants — donc leurs propres
+   gestionnaires tactiles ci-dessous ne remontent jamais jusqu'ici) + un
+   joystick virtuel bas-gauche (mouvement) + deux boutons bas-droite (Sauter/
+   Interagir). Un seul doigt suivi par zone à la fois (identifiant de
+   `Touch.identifier`), pour rester correct si le joueur regarde ET marche en
+   même temps avec deux doigts. */
+function setupTouchControls(container) {
+  let lookTouchId = null, lookLastX = 0, lookLastY = 0;
+  container.addEventListener('touchstart', e => {
+    if (!locked) return;
+    const t0 = e.changedTouches[0];
+    if (lookTouchId === null) {
+      lookTouchId = t0.identifier;
+      lookLastX = t0.clientX; lookLastY = t0.clientY;
+    }
+  }, { passive: true });
+  container.addEventListener('touchmove', e => {
+    if (lookTouchId === null) return;
+    for (const touch of e.changedTouches) {
+      if (touch.identifier !== lookTouchId) continue;
+      const dx = touch.clientX - lookLastX, dy = touch.clientY - lookLastY;
+      lookLastX = touch.clientX; lookLastY = touch.clientY;
+      yaw -= dx * TOUCH_LOOK_SENS;
+      pitch -= dy * TOUCH_LOOK_SENS;
+      if (pitch > PITCH_LIMIT) pitch = PITCH_LIMIT;
+      if (pitch < -PITCH_LIMIT) pitch = -PITCH_LIMIT;
+      camera.rotation.y = yaw;
+      camera.rotation.x = pitch;
+    }
+  }, { passive: true });
+  const releaseLook = e => {
+    for (const touch of e.changedTouches) if (touch.identifier === lookTouchId) lookTouchId = null;
+  };
+  container.addEventListener('touchend', releaseLook);
+  container.addEventListener('touchcancel', releaseLook);
+
+  const joystick = document.getElementById('touchJoystick');
+  const knob = document.getElementById('touchJoystickKnob');
+  let joyTouchId = null;
+
+  function setMoveCode(dir, active) {
+    if (active) heldCodes.add(TOUCH_MOVE_CODES[dir]);
+    else heldCodes.delete(TOUCH_MOVE_CODES[dir]);
+  }
+  function updateJoystick(touch) {
+    const rect = joystick.getBoundingClientRect();
+    const maxR = rect.width / 2;
+    let dx = touch.clientX - (rect.left + rect.width / 2);
+    let dy = touch.clientY - (rect.top + rect.height / 2);
+    const dist = Math.hypot(dx, dy);
+    if (dist > maxR) { dx = (dx / dist) * maxR; dy = (dy / dist) * maxR; }
+    knob.style.transform = `translate(${dx}px, ${dy}px)`;
+    const DEAD = 0.25;
+    const nx = dx / maxR, ny = dy / maxR;
+    setMoveCode('forward', ny < -DEAD);
+    setMoveCode('back', ny > DEAD);
+    setMoveCode('left', nx < -DEAD);
+    setMoveCode('right', nx > DEAD);
+  }
+  function resetJoystick() {
+    knob.style.transform = 'translate(0,0)';
+    setMoveCode('forward', false); setMoveCode('back', false);
+    setMoveCode('left', false); setMoveCode('right', false);
+  }
+  joystick.addEventListener('touchstart', e => {
+    const touch = e.changedTouches[0];
+    joyTouchId = touch.identifier;
+    updateJoystick(touch);
+  }, { passive: true });
+  joystick.addEventListener('touchmove', e => {
+    for (const touch of e.changedTouches) if (touch.identifier === joyTouchId) updateJoystick(touch);
+  }, { passive: true });
+  const releaseJoystick = e => {
+    for (const touch of e.changedTouches) {
+      if (touch.identifier === joyTouchId) { joyTouchId = null; resetJoystick(); }
+    }
+  };
+  joystick.addEventListener('touchend', releaseJoystick);
+  joystick.addEventListener('touchcancel', releaseJoystick);
+
+  const jumpBtn = document.getElementById('touchJumpBtn');
+  jumpBtn.addEventListener('touchstart', e => { e.preventDefault(); heldCodes.add('Space'); }, { passive: false });
+  jumpBtn.addEventListener('touchend', () => heldCodes.delete('Space'));
+  jumpBtn.addEventListener('touchcancel', () => heldCodes.delete('Space'));
+
+  const interactBtn = document.getElementById('touchInteractBtn');
+  interactBtn.addEventListener('touchstart', e => {
+    e.preventDefault();
+    if (locked) tryInteractWithNpcUnderCrosshair();
+  }, { passive: false });
 }
 
 /* ============================= GÉOMÉTRIE UTILITAIRE ============================= */
@@ -1141,7 +1311,9 @@ function buildNpc(id, localAngle, origin, forward, right, labelArr) {
     }
   }
 
-  const html = `<span class="pl-name">${NPC_NAMES[id]}</span><span class="pl-cost">Visez-le et appuyez sur E</span>`;
+  const name = (typeof window.npcName === 'function') ? window.npcName(id) : id;
+  const hint = (typeof window.t === 'function') ? window.t('npc.interactHint') : 'Visez-le et appuyez sur E';
+  const html = `<span class="pl-name">${name}</span><span class="pl-cost">${hint}</span>`;
   const labelPos = p.clone();
   labelPos.y = 2.0;
   makeLabel(html, labelPos, 'npc-label', labelArr);
@@ -1181,6 +1353,13 @@ const PROP_HANGING = { propChandelier: true };
 // la plupart des plantes sont posées dans un pot (comme entretenues, pas
 // sauvages) — demandé explicitement ("comme si elle était entretenue").
 const PROP_POTTED_CHANCE = { propPlant: 0.75 };
+// une plante a un vrai feuillage souple, pas une carcasse rigide — demandé
+// explicitement ("une vraie physique... on peut traverser une plante comme
+// dans la vraie vie"). Garde une hitbox EXACTE (mêmes halfW/halfD dérivés du
+// modèle que tout le reste du décor, voir buildProps) mais `soft:true` fait
+// que resolveObstacleList() ne repousse jamais le joueur pour cet obstacle —
+// contrairement à une table/armoire, restées rigides.
+const PROP_SOFT = { propPlant: true };
 const propModelScaleCache = {};
 
 function propModelScale(key) {
@@ -1278,7 +1457,7 @@ function buildProps(zoneIdx, origin, forward, right, avoidAngles, wallHeight = W
     group.add(model);
 
     if (!hanging) {
-      obstacles.push({ type: 'box', x: p.x, z: p.z, halfW, halfD, rotY });
+      obstacles.push({ type: 'box', x: p.x, z: p.z, halfW, halfD, rotY, soft: PROP_SOFT[key] });
       placedCircles.push({ x: p.x, z: p.z, r: circumRadius });
     }
     placed++;
@@ -1565,6 +1744,7 @@ function obbPushVector(lx, lz, halfW, halfD, clearance) {
    les objets"). */
 function resolveObstacleList(obstacles) {
   for (const ob of obstacles) {
+    if (ob.soft) continue; // décor "souple" (plantes) : hitbox exacte mais traversable, voir PROP_SOFT
     if (ob.type === 'box') {
       const dx = camera.position.x - ob.x, dz = camera.position.z - ob.z;
       const cos = Math.cos(ob.rotY), sin = Math.sin(ob.rotY);
@@ -1791,7 +1971,16 @@ function tick() {
   const dt = clock ? Math.min(clock.getDelta(), 0.05) : 0;
   elapsed += dt;
 
-  if (locked) {
+  if (isTouchDevice) updateTouchUIVisibility();
+  // un overlay plein écran (PNJ/règles/paramètres/succès) doit mettre le
+  // déplacement en pause, pas seulement sur tactile (voir
+  // updateTouchUIVisibility ci-dessus, qui gère `locked` pour le tactile) —
+  // sur desktop, talkToNpc() (game.js) appelle déjà exitPointerLock() donc
+  // `locked` retombe tout seul pour le panneau PNJ, mais Règles/Paramètres/
+  // Succès (ouvrables en cours de partie depuis la barre d'outils) ne le
+  // faisaient pas : sans ce garde-fou on pouvait continuer à marcher sous un
+  // panneau plein écran.
+  if (locked && !anyOverlayVisible()) {
     // pas de saut pendant la traversée du "gap" entre deux salles : sauter
     // (ou juste tenir la touche) à ce moment-là déclenchait le son de saut
     // juste après avoir franchi la porte — signalé explicitement ("il ne

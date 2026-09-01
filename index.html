@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Avidité — Le Dé du Jugement</title>
 <link rel="stylesheet" href="style.css">
 </head>
@@ -34,13 +34,13 @@
   </div>
 
   <div class="toolbar">
-    <button class="ghost-btn" id="btnRules">Règles</button>
-    <button class="ghost-btn" id="btnStats">Succès</button>
-    <button class="ghost-btn" id="btnSettings">Paramètres</button>
+    <button class="ghost-btn" id="btnRules" data-i18n="toolbar.rules">Règles</button>
+    <button class="ghost-btn" id="btnStats" data-i18n="toolbar.stats">Succès</button>
+    <button class="ghost-btn" id="btnSettings" data-i18n="toolbar.settings">Paramètres</button>
   </div>
 
   <header class="titlebar" id="titlebar">
-    <h1>AVIDITÉ</h1>
+    <h1 data-i18n="app.title">AVIDITÉ</h1>
   </header>
 
   <div class="play-area" id="playArea" hidden>
@@ -74,17 +74,17 @@
       </svg>
       <div class="dial-result" id="dialResult">
         <span class="face-count" id="faceCountLabel">50</span>
-        <span class="face-word">faces</span>
+        <span class="face-word" data-i18n="dial.faceWord">faces</span>
       </div>
     </div>
 
     <div class="hud3d">
       <div class="zone-banner" id="zoneHudVal">Donjon de pierre</div>
       <div class="hud">
-        <div class="stat"><span class="label">Faces du Dé</span><span class="val" id="facesHudVal">50</span></div>
-        <div class="stat"><span class="label">Énergie</span><span class="val" id="energyVal">10</span></div>
-        <div class="stat"><span class="label">Or partie</span><span class="val gold" id="goldRun">0</span></div>
-        <div class="stat"><span class="label">Or banqué</span><span class="val bank" id="goldBank">0</span></div>
+        <div class="stat"><span class="label" data-i18n="hud.faces">Faces du Dé</span><span class="val" id="facesHudVal">50</span></div>
+        <div class="stat"><span class="label" data-i18n="hud.energy">Énergie</span><span class="val" id="energyVal">10</span></div>
+        <div class="stat"><span class="label" data-i18n="hud.goldRun">Or partie</span><span class="val gold" id="goldRun">0</span></div>
+        <div class="stat"><span class="label" data-i18n="hud.goldBank">Or banqué</span><span class="val bank" id="goldBank">0</span></div>
       </div>
       <div class="inventory" id="inventory">
         <div class="badge" id="badgeAnti" hidden><span class="badge-icon">⛨</span><span id="badgeAntiVal">0</span></div>
@@ -94,8 +94,18 @@
     </div>
 
     <div class="lock-prompt" id="lockPrompt">
-      <span>Cliquez pour regarder autour de vous</span>
-      <small>Souris pour regarder — touches de déplacement (configurables) pour marcher, sauter — E pour interagir avec un PNJ visé — Échap pour libérer le curseur</small>
+      <span id="lockPromptTitle" data-i18n="lock.title">Cliquez pour regarder autour de vous</span>
+      <small id="lockPromptHint" data-i18n="lock.hint">Souris pour regarder — touches de déplacement (configurables) pour marcher, sauter — E pour interagir avec un PNJ visé — Échap pour libérer le curseur</small>
+    </div>
+
+    <div class="touch-controls" id="touchControls" hidden>
+      <div class="touch-joystick" id="touchJoystick">
+        <div class="touch-joystick-knob" id="touchJoystickKnob"></div>
+      </div>
+      <div class="touch-buttons">
+        <button class="touch-btn touch-btn-interact" id="touchInteractBtn" type="button">E</button>
+        <button class="touch-btn touch-btn-jump" id="touchJumpBtn" type="button">⤒</button>
+      </div>
     </div>
   </div>
 
@@ -105,33 +115,33 @@
   <div class="overlay" id="rulesOverlay" hidden>
     <div class="overlay-card rules-card">
       <div class="overlay-head">
-        <h2>Règles</h2>
+        <h2 data-i18n="rules.title">Règles</h2>
         <button class="close-btn" id="btnCloseRules">✕</button>
       </div>
       <div class="rules-body">
-        <h3>Chemins</h3>
-        <p>Chaque tour, 8 chemins s'offrent à vous. En prendre un l'applique aussitôt, vous traversez le passage, puis le Dé du Jugement tombe et une nouvelle salle apparaît.</p>
-        <h3>Dé du Jugement</h3>
-        <p>50 faces au départ, une de moins à chaque tour. Sur "1" : vous perdez tout l'or de la partie et la roue reprend son nombre de faces initial.</p>
-        <h3>Or de la partie</h3>
-        <p>Multiplié par le nombre de tours joués. Plus vous restez, plus il pèse — et plus vous risquez de tout perdre d'un coup.</p>
-        <h3>Chemins d'action</h3>
+        <h3 data-i18n="rules.paths.title">Chemins</h3>
+        <p data-i18n="rules.paths.body">Chaque tour, 8 chemins s'offrent à vous. En prendre un l'applique aussitôt, vous traversez le passage, puis le Dé du Jugement tombe et une nouvelle salle apparaît.</p>
+        <h3 data-i18n="rules.dice.title">Dé du Jugement</h3>
+        <p data-i18n="rules.dice.body">50 faces au départ, une de moins à chaque tour. Sur "1" : vous perdez tout l'or de la partie et la roue reprend son nombre de faces initial.</p>
+        <h3 data-i18n="rules.runGold.title">Or de la partie</h3>
+        <p data-i18n="rules.runGold.body">Multiplié par le nombre de tours joués. Plus vous restez, plus il pèse — et plus vous risquez de tout perdre d'un coup.</p>
+        <h3 data-i18n="rules.actionPaths.title">Chemins d'action</h3>
         <ul>
-          <li><strong>Mine</strong> — +1 or dans 10 tours.</li>
-          <li><strong>Canalisation</strong> — +1 énergie/tour, toute la partie.</li>
-          <li><strong>Anti-destinée</strong> — le prochain lancer ne peut pas faire 1.</li>
-          <li><strong>Rejet</strong> — relance : sauve automatiquement d'un 1.</li>
-          <li><strong>Rajeunissement</strong> — +1 face au dé, toute la partie.</li>
+          <li data-i18n-html="rules.actionPaths.mine"><strong>Mine</strong> — +1 or dans 10 tours.</li>
+          <li data-i18n-html="rules.actionPaths.canal"><strong>Canalisation</strong> — +1 énergie/tour, toute la partie.</li>
+          <li data-i18n-html="rules.actionPaths.anti"><strong>Anti-destinée</strong> — le prochain lancer ne peut pas faire 1.</li>
+          <li data-i18n-html="rules.actionPaths.rejet"><strong>Rejet</strong> — relance : sauve automatiquement d'un 1.</li>
+          <li data-i18n-html="rules.actionPaths.rajeun"><strong>Rajeunissement</strong> — +1 face au dé, toute la partie.</li>
         </ul>
-        <p>Un chemin d'action fermé (barré) signifie que vous n'avez pas l'énergie pour le prendre.</p>
-        <h3>Chemins spéciaux</h3>
-        <p><strong>Ne rien faire</strong> : passe le tour sans effet. <strong>Doubler énergie</strong> : x2 immédiat, 1 seule fois par partie — une fois pris, ce chemin disparaît. <strong>Récupérer l'or</strong> : banque l'or de la partie dans votre or permanent, la partie continue.</p>
-        <h3>Coûts des actions</h3>
-        <p>+20% par achat, remis à zéro à chaque nouvelle partie.</p>
-        <h3>Les PNJ</h3>
-        <p>Chaque PNJ a une petite chance d'apparaître dans une salle. Vous l'abordez automatiquement en entrant dans la salle (jamais manqué). Leurs achats (contre de l'or banqué, sauf le Parieur qui est gratuit) sont permanents, pour toutes vos parties futures. Leurs prix augmentent de 20% à chaque achat.</p>
-        <h3>Histoire</h3>
-        <p>Les PNJ sont des gens qui n'ont jamais réussi à combler leur propre avidité. Devenus vieux, ils ont fini par abandonner — et ont choisi, à défaut, de vous aider à combler la vôtre.</p>
+        <p data-i18n="rules.actionPaths.closed">Un chemin d'action fermé (barré) signifie que vous n'avez pas l'énergie pour le prendre.</p>
+        <h3 data-i18n="rules.specialPaths.title">Chemins spéciaux</h3>
+        <p data-i18n-html="rules.specialPaths.body"><strong>Ne rien faire</strong> : passe le tour sans effet. <strong>Doubler énergie</strong> : x2 immédiat, 1 seule fois par partie — une fois pris, ce chemin disparaît. <strong>Récupérer l'or</strong> : banque l'or de la partie dans votre or permanent, la partie continue.</p>
+        <h3 data-i18n="rules.costs.title">Coûts des actions</h3>
+        <p data-i18n="rules.costs.body">+20% par achat, remis à zéro à chaque nouvelle partie.</p>
+        <h3 data-i18n="rules.npcs.title">Les PNJ</h3>
+        <p data-i18n="rules.npcs.body">Chaque PNJ a une petite chance d'apparaître dans une salle. Visez-le et appuyez sur la touche dédiée pour lui parler. Leurs achats (contre de l'or banqué, sauf le Parieur qui est gratuit) sont permanents, pour toutes vos parties futures. Leurs prix augmentent de 20% à chaque achat.</p>
+        <h3 data-i18n="rules.story.title">Histoire</h3>
+        <p data-i18n="rules.story.body">Les PNJ sont des gens qui n'ont jamais réussi à combler leur propre avidité. Devenus vieux, ils ont fini par abandonner — et ont choisi, à défaut, de vous aider à combler la vôtre.</p>
       </div>
     </div>
   </div>
@@ -139,31 +149,36 @@
   <div class="overlay" id="settingsOverlay" hidden>
     <div class="overlay-card settings-card">
       <div class="overlay-head">
-        <h2>Paramètres</h2>
+        <h2 data-i18n="settings.title">Paramètres</h2>
         <button class="close-btn" id="btnCloseSettings">✕</button>
       </div>
       <div class="speed-row">
-        <span class="speed-label">Vitesse du dé</span>
+        <span class="speed-label" data-i18n="settings.language.label">Langue</span>
+        <div class="speed-options" id="languageOptions"></div>
+      </div>
+
+      <div class="speed-row">
+        <span class="speed-label" data-i18n="settings.diceSpeed.label">Vitesse du dé</span>
         <div class="speed-options" id="speedOptions"></div>
       </div>
 
       <div class="speed-row">
-        <span class="speed-label">Volume des sons</span>
+        <span class="speed-label" data-i18n="settings.volume.label">Volume des sons</span>
         <input type="range" class="volume-slider" id="sfxVolumeSlider" min="0" max="100" value="60">
       </div>
 
-      <p class="overlay-sub">Touches de déplacement. « Changer » puis une touche. Échap annule.</p>
+      <p class="overlay-sub" data-i18n="settings.keybinds.hint">Touches de déplacement. « Changer » puis une touche. Échap annule.</p>
       <div class="keybind-list" id="keybindList"></div>
-      <button class="reset-btn" id="btnResetKeybinds">Réinitialiser les touches</button>
-      <button class="reset-btn" id="btnResetSave">Réinitialiser la sauvegarde</button>
-      <button class="reset-btn" id="btnAdd100Gold">+100 or</button>
+      <button class="reset-btn" id="btnResetKeybinds" data-i18n="settings.resetKeybinds">Réinitialiser les touches</button>
+      <button class="reset-btn" id="btnResetSave" data-i18n="settings.resetSave">Réinitialiser la sauvegarde</button>
+      <button class="reset-btn" id="btnAdd100Gold" data-i18n="settings.add100Gold">+100 or</button>
     </div>
   </div>
 
   <div class="overlay" id="statsOverlay" hidden>
     <div class="overlay-card rules-card">
       <div class="overlay-head">
-        <h2>Succès &amp; Records</h2>
+        <h2 data-i18n="stats.title">Succès &amp; Records</h2>
         <button class="close-btn" id="btnCloseStats">✕</button>
       </div>
       <div class="rules-body" id="statsBody"></div>
@@ -177,7 +192,7 @@
         <button class="close-btn" id="btnCloseNpc">✕</button>
       </div>
       <p class="overlay-sub" id="npcSub" hidden></p>
-      <div class="gold-line">Or banqué : <strong id="npcGoldBank">0</strong></div>
+      <div class="gold-line"><span data-i18n="npc.goldBankLabel">Or banqué :</span> <strong id="npcGoldBank">0</strong></div>
       <div class="shop-grid" id="npcGrid"></div>
     </div>
   </div>
@@ -201,8 +216,9 @@
 }
 </script>
 <script src="https://unpkg.com/three@0.155.0/build/three.js"></script>
+<script src="js/i18n.js?v=1"></script>
 <script src="js/audio.js?v=4"></script>
-<script src="js/game.js?v=27"></script>
-<script src="js/scene3d.js?v=46"></script>
+<script src="js/game.js?v=28"></script>
+<script src="js/scene3d.js?v=47"></script>
 </body>
 </html>
