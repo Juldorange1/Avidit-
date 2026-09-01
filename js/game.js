@@ -40,6 +40,16 @@ const NPC_BASE_CHANCE = 0.013;
 const NPC_CHANCE_BOOST_MULT = 20;
 const NPC1_PICKS_PER_EXTRA_OFFER = 10;
 
+// Micro-dialogue narratif des PNJ (voir talkToNpc()/i18n.js `npcX.dialogue.N`) :
+// 5 étapes fixes (index 0 à 4) par PNJ, du "il connaît bien cette aventure"
+// au "j'espère que tu iras plus loin que moi" — jamais plus, jamais moins,
+// pour rester un petit arc narratif maîtrisé plutôt qu'un flux sans fin.
+const NPC_DIALOGUE_MAX = 4;
+function npcDialogueLine(npcId) {
+  const idx = meta.npc[npcId + 'DialogueIndex'];
+  return idx >= 0 ? t(npcId + '.dialogue.' + idx) : '';
+}
+
 /* 8 zones visuelles (décor différent : murs, sol/plafond, objets de salle,
    ambiance) — le rendu de chacune est entièrement géré par scene3d.js
    (ZONE_DEFS), game.js ne suit que l'index courant. Toutes les 200 salles
@@ -99,6 +109,15 @@ function defaultMeta() {
       npc3BoostDoorCost: 700,  // +20% après chaque achat
       npc3ExtraFacesCost: 30,  // +20% après chaque achat
       npc3Turn1EnergyCost: 20, // +20% après chaque achat
+      // ---- micro-dialogue narratif (voir NPC_DIALOGUE_MAX / talkToNpc()) ----
+      // -1 = aucune ligne encore vue. Avance d'1 cran (jusqu'à
+      // NPC_DIALOGUE_MAX) à chaque PREMIÈRE interaction dans une NOUVELLE
+      // salle (jamais en reparlant plusieurs fois dans la même salle) —
+      // permanent, indépendant des parties, pour une progression étalée sur
+      // de nombreuses rencontres plutôt que consommée d'un coup.
+      npc1DialogueIndex: -1,
+      npc2DialogueIndex: -1,
+      npc3DialogueIndex: -1,
     },
     // ---- statistiques permanentes (menu Succès/Records) ----
     stats: {
@@ -204,6 +223,8 @@ function newRun() {
       npc1FaceDelta: 0,          // ajustement (peut être négatif) du nombre de faces, offert par le PNJ 1
       npc1RemainingPicks: 0,     // choix restants pour la visite en cours chez le PNJ 1
       npc1VisitedThisRoom: false, // vrai dès le premier talkToNpc('npc1') de cette salle — voir startNewTurn()/talkToNpc()
+      npc2VisitedThisRoom: false, // idem, pour la progression du micro-dialogue uniquement (voir talkToNpc())
+      npc3VisitedThisRoom: false,
       npc2BonusDoor: null,       // id de l'action dont le coût est réduit cette salle (ou null)
       npc3BonusDoor: null,       // id de l'action qui rapporte de l'or banqué cette salle (ou null)
       npcChanceBoostNextRoom: false, // consommé par startNewTurn() pour la salle suivante seulement
@@ -269,6 +290,11 @@ function startNewTurn() {
   // un plein jeu de choix gratuits, mais une seule fois par salle même si on
   // lui reparle plusieurs fois — demandé explicitement.
   run.npc1VisitedThisRoom = false;
+  // même principe pour les 2 autres PNJ, uniquement pour la progression du
+  // micro-dialogue (voir talkToNpc()) — pas de mécanique de jeu associée
+  // pour eux, contrairement au PNJ 1.
+  run.npc2VisitedThisRoom = false;
+  run.npc3VisitedThisRoom = false;
 
   // toutes les ROOMS_PER_ZONE (200) salles traversées, bascule sur une autre zone
   // au hasard (jamais la même) — le compteur ne dépend PAS de turnsPassed : perdre
@@ -860,9 +886,24 @@ function renderStats() {
 function talkToNpc(npcId) {
   if (!run) return;
   if (window.SFX) SFX.npcGreet();
-  if (npcId === 'npc1' && !run.npc1VisitedThisRoom) {
+  // micro-dialogue narratif : avance d'1 étape à la première interaction
+  // dans une salle donnée (jamais en reparlant dans la même salle) — voir
+  // NPC_DIALOGUE_MAX/npcDialogueLine(). Testé AVANT toute mise à jour de
+  // `npc1VisitedThisRoom` ci-dessous (qui sert une mécanique de jeu réelle,
+  // propre au PNJ 1), sinon l'avancée du dialogue du PNJ 1 ne se
+  // déclencherait jamais (le flag serait déjà à `true`).
+  const visitedKey = npcId + 'VisitedThisRoom';
+  const isFirstVisitThisRoom = !run[visitedKey];
+  if (isFirstVisitThisRoom) {
+    run[visitedKey] = true;
+    const dialogueKey = npcId + 'DialogueIndex';
+    if (meta.npc[dialogueKey] < NPC_DIALOGUE_MAX) {
+      meta.npc[dialogueKey] += 1;
+      saveMeta();
+    }
+  }
+  if (npcId === 'npc1' && isFirstVisitThisRoom) {
     run.npc1RemainingPicks = npc1MaxOffers();
-    run.npc1VisitedThisRoom = true;
   }
   renderNpcOverlay(npcId);
   showOverlay('npcOverlay');
@@ -873,6 +914,11 @@ window.talkToNpc = talkToNpc;
 function renderNpcOverlay(npcId) {
   document.getElementById('npcName').textContent = npcName(npcId);
   document.getElementById('npcGoldBank').textContent = meta.gold;
+
+  const dialogueEl = document.getElementById('npcDialogue');
+  const line = npcDialogueLine(npcId);
+  dialogueEl.textContent = line;
+  dialogueEl.hidden = !line;
 
   const sub = document.getElementById('npcSub');
   if (npcId === 'npc1') {

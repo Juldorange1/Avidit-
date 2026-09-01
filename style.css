@@ -572,6 +572,21 @@ h1,h2,h3,.badge,.stat .label,.accept-btn,.ghost-btn,button{
 }
 .close-btn:hover{ color:var(--gold-light); border-color:var(--gold); }
 .overlay-sub{ color:var(--ink-dim); font-size:0.9rem; margin:4px 0 12px; }
+
+/* ---------- MICRO-DIALOGUE PNJ ---------- */
+/* Une phrase ou deux, jamais plus (voir npcDialogueLine() dans game.js) —
+   présentation légère façon citation, distincte du reste du panneau
+   (achats/coûts) pour bien la lire comme "le PNJ parle" et pas comme une
+   ligne d'interface. */
+.npc-dialogue{
+  color:var(--ink);
+  font-style:italic;
+  font-size:0.95rem;
+  line-height:1.4;
+  margin:10px 0 4px;
+  padding:8px 0 8px 14px;
+  border-left:2px solid var(--gold-dim);
+}
 .shop-grid{
   display:grid;
   grid-template-columns:repeat(auto-fill, minmax(200px, 1fr));

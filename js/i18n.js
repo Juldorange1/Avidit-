@@ -142,6 +142,29 @@ const STRINGS = {
     'npc.npc2.name': "Le Forgeron d'Énergie",
     'npc.npc3.name': "Le Changeur d'Or",
 
+    // Micro-dialogues des PNJ : une ligne par rencontre (première interaction
+    // dans une NOUVELLE salle, voir talkToNpc()/renderNpcOverlay() dans
+    // game.js), progression narrative fixe en 5 étapes par PNJ — jamais plus
+    // d'1-2 phrases, jamais un tutoriel déguisé. Reste affichée telle quelle
+    // en reparlant plusieurs fois dans la MÊME salle.
+    'npc1.dialogue.0': 'Je connais cette roue mieux que personne. Chaque face a un prix.',
+    'npc1.dialogue.1': "Moi aussi, j'ai voulu voir jusqu'où elle pouvait tourner.",
+    'npc1.dialogue.2': "J'ai perdu plus de fois que je ne veux m'en souvenir. Puis j'ai arrêté.",
+    'npc1.dialogue.3': "Le vrai danger n'a jamais été le 1. C'était de vouloir relancer encore.",
+    'npc1.dialogue.4': 'Je ne peux plus tourner cette roue. Toi, tu peux encore.',
+
+    'npc2.dialogue.0': "L'énergie ne ment jamais. Elle dit ce que tu es prêt à payer.",
+    'npc2.dialogue.1': 'J\'ai forgé ma propre roue, autrefois. Plus grande, plus affamée.',
+    'npc2.dialogue.2': "Chaque salle en demandait plus. Un jour, je n'ai plus pu suivre.",
+    'npc2.dialogue.3': "Ce n'est pas l'énergie qui manque en premier. C'est la raison de continuer.",
+    'npc2.dialogue.4': 'Prends ce que je peux encore te donner. Va plus loin que moi.',
+
+    'npc3.dialogue.0': "L'or que tu portes n'est jamais le dernier que tu voudras.",
+    'npc3.dialogue.1': "J'ai amassé plus que quiconque avant toi. Ça n'a jamais suffi.",
+    'npc3.dialogue.2': "Un jour, j'ai tout perdu d'un coup. Je n'ai jamais tout récupéré.",
+    'npc3.dialogue.3': 'Le problème n\'était pas la roue. C\'était que je ne savais jamais m\'arrêter.',
+    'npc3.dialogue.4': 'Prends cet or. Sache seulement quand cesser d\'en vouloir plus.',
+
     'npc1.facesForDouble.name': 'Marché du hasard',
     'npc1.facesForDouble.desc': "-8 faces au dé du jugement, mais ×2 énergie immédiat ET un nouveau doubleur d'énergie utilisable (même si le vôtre est déjà dépensé).",
     'npc1.npcChance.name': 'Flair des voyageurs',
@@ -294,6 +317,24 @@ const STRINGS = {
     'npc.npc1.name': 'The Gambler',
     'npc.npc2.name': 'The Energy Smith',
     'npc.npc3.name': 'The Gold Changer',
+
+    'npc1.dialogue.0': 'I know this wheel better than anyone. Every face has a price.',
+    'npc1.dialogue.1': 'I too wanted to see how far it could spin.',
+    'npc1.dialogue.2': "I lost more times than I care to remember. Then I stopped.",
+    'npc1.dialogue.3': 'The real danger was never the 1. It was wanting to reroll again.',
+    'npc1.dialogue.4': "I can't spin this wheel anymore. You still can.",
+
+    'npc2.dialogue.0': "Energy never lies. It says exactly what you're willing to pay.",
+    'npc2.dialogue.1': 'I forged my own wheel once. Bigger. Hungrier.',
+    'npc2.dialogue.2': "Every room demanded more. One day, I couldn't keep up.",
+    'npc2.dialogue.3': "It's not energy that runs out first. It's the reason to continue.",
+    'npc2.dialogue.4': 'Take what I can still give you. Go further than I did.',
+
+    'npc3.dialogue.0': "The gold you're carrying is never the last you'll want.",
+    'npc3.dialogue.1': 'I amassed more than anyone before you. It was never enough.',
+    'npc3.dialogue.2': 'One day, I lost it all at once. I never got it back.',
+    'npc3.dialogue.3': 'The wheel was never the problem. I just never knew when to stop.',
+    'npc3.dialogue.4': 'Take this gold. Just know when to stop wanting more.',
 
     'npc1.facesForDouble.name': 'Deal of chance',
     'npc1.facesForDouble.desc': '-8 faces on the wheel of judgment, but an instant ×2 energy AND a new usable energy doubler (even if yours is already spent).',
