@@ -140,6 +140,7 @@
         <p data-i18n="rules.costs.body">+20% par achat, remis à zéro à chaque nouvelle partie.</p>
         <h3 data-i18n="rules.npcs.title">Les PNJ</h3>
         <p data-i18n="rules.npcs.body">Chaque PNJ a une petite chance d'apparaître dans une salle. Visez-le et appuyez sur la touche dédiée pour lui parler. Leurs achats (contre de l'or banqué, sauf le Parieur qui est gratuit) sont permanents, pour toutes vos parties futures. Leurs prix augmentent de 20% à chaque achat.</p>
+        <div id="rulesNpcOffers"></div>
         <h3 data-i18n="rules.story.title">Histoire</h3>
         <p data-i18n="rules.story.body">Les PNJ sont des gens qui n'ont jamais réussi à combler leur propre avidité. Devenus vieux, ils ont fini par abandonner — et ont choisi, à défaut, de vous aider à combler la vôtre.</p>
       </div>
@@ -156,6 +157,12 @@
         <span class="speed-label" data-i18n="settings.language.label">Langue</span>
         <div class="speed-options" id="languageOptions"></div>
       </div>
+
+      <div class="speed-row">
+        <span class="speed-label" data-i18n="settings.assistMode.label">Mode assisté</span>
+        <div class="speed-options" id="assistModeOptions"></div>
+      </div>
+      <p class="overlay-sub" data-i18n="settings.assistMode.hint">Affiche l'effet complet de chaque porte pendant une partie. Activé par défaut, se désactive tout seul dès votre premier reset du dé.</p>
 
       <div class="speed-row">
         <span class="speed-label" data-i18n="settings.diceSpeed.label">Vitesse du dé</span>
@@ -216,9 +223,9 @@
 }
 </script>
 <script src="https://unpkg.com/three@0.155.0/build/three.js"></script>
-<script src="js/i18n.js?v=1"></script>
+<script src="js/i18n.js?v=2"></script>
 <script src="js/audio.js?v=4"></script>
-<script src="js/game.js?v=28"></script>
-<script src="js/scene3d.js?v=47"></script>
+<script src="js/game.js?v=29"></script>
+<script src="js/scene3d.js?v=48"></script>
 </body>
 </html>

@@ -211,6 +211,12 @@ h1,h2,h3,.badge,.stat .label,.accept-btn,.ghost-btn,button{
 }
 .portal-label .pl-name{ display:block; font-size:0.8rem; }
 .portal-label .pl-cost{ display:block; font-size:0.66rem; color:var(--ink-dim); margin-top:2px; }
+/* "mode assisté" (voir Paramètres) : ligne d'effet complète en plus du coût,
+   sous chaque porte d'action. white-space:normal ici seulement — le
+   comportement par défaut (nowrap) reste inchangé pour toutes les étiquettes
+   sans détail. */
+.portal-label.detailed{ white-space:normal; max-width:230px; }
+.portal-label .pl-desc{ display:block; font-size:0.62rem; color:var(--ink-dim); margin-top:3px; font-style:italic; line-height:1.25; }
 .portal-label.blocked{
   border-color:rgba(192,57,43,0.6);
   color:#c98d80;

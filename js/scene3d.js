@@ -999,11 +999,19 @@ function buildDoor(path, localAngle, origin, forward, right, labelArr) {
   }
 
   const costText = path.kind === 'action' ? `${path.cost} ${path.currency}` : path.desc;
-  const html = `<span class="pl-name">${path.name}</span><span class="pl-cost">${costText}</span>`;
+  // "mode assisté" (Paramètres, activé par défaut, se désactive tout seul
+  // au premier reset du dé — voir endTurn() dans game.js) : affiche l'effet
+  // complet de CHAQUE porte, pas juste son coût — demandé explicitement
+  // ("toutes les portes ont une indication bien plus détaillée de leur
+  // effet"). Uniquement utile pour les chemins d'action : les chemins
+  // spéciaux affichent déjà leur description complète comme `costText`.
+  const showDetail = path.kind === 'action' && typeof meta !== 'undefined' && meta.assistMode;
+  const detailHtml = showDetail ? `<span class="pl-desc">${path.desc}</span>` : '';
+  const html = `<span class="pl-name">${path.name}</span><span class="pl-cost">${costText}</span>${detailHtml}`;
   const labelPos = origin.clone().addScaledVector(dir, DOOR_R);
   labelPos.y = DOOR_HEIGHT + 0.5;
   const bonusClass = path.bonusEnergy ? ' bonus-energy' : (path.bonusGold ? ' bonus-gold' : '');
-  makeLabel(html, labelPos, (!open ? 'blocked' : '') + (path.kind === 'special' ? ' special' : '') + bonusClass, labelArr);
+  makeLabel(html, labelPos, (!open ? 'blocked' : '') + (path.kind === 'special' ? ' special' : '') + bonusClass + (showDetail ? ' detailed' : ''), labelArr);
 
   return { object: hinge, hinge };
 }
@@ -1659,7 +1667,18 @@ function updateDoorSwing(dt) {
 }
 
 function updateJump(dt) {
-  if (isDown('jump') && heightOffset <= 0.001 && velocityY <= 0) {
+  // ne jamais DÉCLENCHER un nouveau saut (son inclus) pendant la traversée
+  // du "gap" d'une porte, sinon le son de saut retentit juste après le son
+  // de porte ouverte — mais la gravité, elle, doit continuer à s'appliquer
+  // MÊME pendant la traversée : si le joueur était déjà en l'air au moment
+  // de franchir la porte (saut commencé juste avant), figer entièrement
+  // heightOffset/velocityY pendant tout le "gap" (ancien comportement : toute
+  // cette fonction était sautée tant que `transitioning` valait vrai) le
+  // laissait suspendu à une hauteur fixe jusqu'à l'arrivée dans la salle
+  // suivante, où il retombait d'un coup après avoir déjà avancé — sensation
+  // de rester coincé dans le mur au-dessus de la porte franchie. Bug signalé
+  // explicitement.
+  if (!transitioning && isDown('jump') && heightOffset <= 0.001 && velocityY <= 0) {
     velocityY = JUMP_SPEED;
     if (window.SFX) SFX.jump();
   }
@@ -1981,13 +2000,12 @@ function tick() {
   // faisaient pas : sans ce garde-fou on pouvait continuer à marcher sous un
   // panneau plein écran.
   if (locked && !anyOverlayVisible()) {
-    // pas de saut pendant la traversée du "gap" entre deux salles : sauter
-    // (ou juste tenir la touche) à ce moment-là déclenchait le son de saut
-    // juste après avoir franchi la porte — signalé explicitement ("il ne
-    // doit pas y avoir de 'pm' après l'avoir traversée, juste le bruit de la
-    // porte qui s'ouvre"). `updateJump` tournait sans condition, y compris
-    // tant que `transitioning` est vrai.
-    if (!transitioning) updateJump(dt);
+    // updateJump() tourne TOUJOURS (voir son propre garde-fou interne contre
+    // le déclenchement d'un NOUVEAU saut pendant `transitioning`) : la
+    // gravité doit rester continue même en traversant une porte, sinon un
+    // saut commencé juste avant de franchir la porte laissait le joueur figé
+    // en l'air jusqu'à l'arrivée dans la salle suivante.
+    updateJump(dt);
     updateDoorSwing(dt);
     if (transitioning) {
       updateGapMovement(dt);

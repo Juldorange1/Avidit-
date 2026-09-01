@@ -112,6 +112,11 @@ function defaultMeta() {
     diceSpeed: 'normale',
     sfxVolume: 0.6,
     lang: (typeof LANG_DEFAULT !== 'undefined') ? LANG_DEFAULT : 'fr',
+    // "mode assisté" : activé par défaut (aide un joueur qui découvre le
+    // jeu), se désactive tout seul dès le premier reset du dé (voir
+    // endTurn()) — demandé explicitement. Reste désactivé ensuite tant que
+    // le joueur ne le réactive pas lui-même dans les Paramètres.
+    assistMode: true,
   };
 }
 
@@ -135,6 +140,7 @@ function loadMeta() {
       diceSpeed: DICE_SPEEDS[parsed.diceSpeed] ? parsed.diceSpeed : d.diceSpeed,
       sfxVolume: typeof parsed.sfxVolume === 'number' ? parsed.sfxVolume : d.sfxVolume,
       lang: (typeof LANGS !== 'undefined' && LANGS.includes(parsed.lang)) ? parsed.lang : d.lang,
+      assistMode: typeof parsed.assistMode === 'boolean' ? parsed.assistMode : d.assistMode,
     };
   } catch (e) {
     return defaultMeta();
@@ -467,6 +473,14 @@ function endTurn() {
   if (lostGold) {
     run.gold = 0;
     run.turnsPassed = 0;
+    // "mode assisté" (voir defaultMeta()) : se désactive tout seul dès que
+    // les faces du dé sont remises à leur maximum par un vrai reset (un "1"
+    // tiré) — demandé explicitement. Ne se réactive jamais tout seul
+    // ensuite, uniquement si le joueur le fait lui-même dans les Paramètres.
+    if (meta.assistMode) {
+      meta.assistMode = false;
+      saveMeta();
+    }
   } else {
     // un seul incrément par tour : le nombre de faces maximal baisse d'exactement 1
     run.turnsPassed += 1;
@@ -793,6 +807,30 @@ function getLowestUpgrade() {
   return levels.reduce((min, c) => (c.level < min.level ? c : min), levels[0]);
 }
 
+/* Catalogue "tout ce qu'on peut acheter chez chaque PNJ", pour le menu
+   Règles — demandé explicitement ("l'on doit aussi pouvoir voir tous les
+   achats possibles par tous les PNJ"). Réutilise directement
+   getNpc1/2/3Offers() (même source que le panneau d'achat réel, jamais
+   dupliquée) : reflète donc l'état RÉEL actuel (ex. "Porte allégée" affiche
+   le déblocage tant qu'il n'est pas acheté, puis l'amélioration progressive
+   une fois débloqué) plutôt qu'un catalogue figé qui pourrait diverger du
+   vrai panneau PNJ au fil des futurs changements. */
+function renderRulesNpcOffers() {
+  const wrap = document.getElementById('rulesNpcOffers');
+  if (!wrap) return;
+  const groups = [
+    { id: 'npc1', offers: getNpc1Offers() },
+    { id: 'npc2', offers: getNpc2Offers() },
+    { id: 'npc3', offers: getNpc3Offers() },
+  ];
+  wrap.innerHTML = groups.map(g => `
+    <h3>${npcName(g.id)}</h3>
+    <ul>
+      ${g.offers.map(o => `<li><strong>${o.name}</strong> — ${o.desc} (${o.cost != null ? `${o.cost} ${t('currency.gold')}` : t('npc.free')})</li>`).join('')}
+    </ul>
+  `).join('');
+}
+
 function renderStats() {
   const lowest = getLowestUpgrade();
   const body = document.getElementById('statsBody');
@@ -893,6 +931,7 @@ function codeLabel(code) {
 
 function renderSettings() {
   renderLanguageOptions();
+  renderAssistModeOptions();
   renderSpeedOptions();
   document.getElementById('sfxVolumeSlider').value = Math.round(meta.sfxVolume * 100);
 
@@ -933,7 +972,32 @@ function renderLanguageOptions() {
       document.documentElement.lang = code;
       applyStaticI18n();
       renderSettings();
+      renderRulesNpcOffers();
       render();
+      if (window.regenerateHub) window.regenerateHub();
+    });
+    wrap.appendChild(btn);
+  });
+}
+
+/* Bascule ON/OFF du mode assisté (voir defaultMeta()/endTurn()) — même
+   gabarit que renderLanguageOptions() juste au-dessus. Regénère la salle
+   courante pour que les étiquettes de porte reflètent le changement
+   immédiatement (buildDoor() lit meta.assistMode au moment de leur
+   construction, pas à chaque frame). */
+function renderAssistModeOptions() {
+  const wrap = document.getElementById('assistModeOptions');
+  if (!wrap) return;
+  wrap.innerHTML = '';
+  [true, false].forEach(v => {
+    const btn = document.createElement('button');
+    btn.className = 'speed-btn' + (meta.assistMode === v ? ' active' : '');
+    btn.textContent = v ? t('settings.assistMode.on') : t('settings.assistMode.off');
+    btn.addEventListener('click', () => {
+      if (meta.assistMode === v) return;
+      meta.assistMode = v;
+      saveMeta();
+      renderAssistModeOptions();
       if (window.regenerateHub) window.regenerateHub();
     });
     wrap.appendChild(btn);
@@ -1051,7 +1115,10 @@ function wireEvents() {
     if (window.SFX) SFX.setVolume(meta.sfxVolume);
   });
 
-  document.getElementById('btnRules').addEventListener('click', () => showOverlay('rulesOverlay'));
+  document.getElementById('btnRules').addEventListener('click', () => {
+    renderRulesNpcOffers();
+    showOverlay('rulesOverlay');
+  });
   document.getElementById('btnCloseRules').addEventListener('click', () => hideOverlay('rulesOverlay'));
 
   document.getElementById('btnStats').addEventListener('click', () => {
