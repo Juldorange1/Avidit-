@@ -1020,6 +1020,70 @@ function renderRulesNpcOffers() {
   `).join('');
 }
 
+/* Petites icônes en ligne (mêmes couleurs que le reste de l'UI, aucune
+   image externe) pour l'onglet "Chemins" des Règles — demandé explicitement
+   ("tu peux y mettre image"). Un seul <path>/<rect> par icône, style trait
+   simple façon pictogramme. */
+const RULES_PATH_ICONS = {
+  mine: '<path d="M3 17 L11 9"/><path d="M7 3 C11 2 16 4 17 8 C13 8 9 6 7 3 Z"/>',
+  canal: '<path d="M11 2 L5 11 H9 L8 18 L15 8 H11 Z"/>',
+  anti: '<path d="M10 2 L17 5 V10 C17 14 14 17 10 18 C6 17 3 14 3 10 V5 Z"/>',
+  rejet: '<path d="M16 10 A6 6 0 1 1 10 4"/><path d="M10 1 L10 4 L13 4"/>',
+  rajeun: '<path d="M5 3 H15 M5 17 H15 M5 3 C5 8 10 9 10 10 C10 11 5 12 5 17 M15 3 C15 8 10 9 10 10 C10 11 15 12 15 17"/>',
+  skip: '<rect x="5" y="4" width="3" height="12" rx="1" fill="currentColor" stroke="none"/><rect x="12" y="4" width="3" height="12" rx="1" fill="currentColor" stroke="none"/>',
+  double: '<path d="M8 2 L3 10 H7 L6 17 L12 9 H8 Z"/><path d="M14 4 L11 9 H13 L12 14" opacity="0.6"/>',
+  cashout: '<circle cx="10" cy="10" r="7"/><path d="M10 6.5 V13.5 M8 8 C8 6.5 9 6.3 10 6.5 C11.5 6.8 11.5 9 10 9.5 C8.5 10 8 11.5 10 12.5 C11 13 12 12.7 12 12" stroke-linecap="round"/>',
+};
+function rulesPathIcon(key) {
+  return `<svg class="rules-path-icon" viewBox="0 0 20 20">${RULES_PATH_ICONS[key] || ''}</svg>`;
+}
+
+/* Chemins d'action + spéciaux avec icône, pour l'onglet "Chemins" des
+   Règles — réutilise ACTIONS/t('path.*') directement (même source que le
+   vrai jeu, voir getCurrentPaths()) plutôt que de dupliquer les textes :
+   toujours à jour si les descriptions changent un jour. */
+function renderRulesPaths() {
+  const actionWrap = document.getElementById('rulesActionPaths');
+  if (actionWrap) {
+    actionWrap.innerHTML = ACTIONS.map(a => `
+      <div class="rules-path-item">
+        ${rulesPathIcon(a.key)}
+        <div class="rules-path-text"><strong>${a.name}</strong><span>${a.desc()}</span></div>
+      </div>
+    `).join('');
+  }
+  const specialWrap = document.getElementById('rulesSpecialPaths');
+  if (specialWrap) {
+    const specials = [
+      { key: 'skip', name: t('path.skip.name'), desc: t('path.skip.desc') },
+      { key: 'double', name: t('path.double.name'), desc: t('path.double.desc') },
+      { key: 'cashout', name: t('path.cashout.name'), desc: t('rules.specialPaths.cashoutDesc') },
+    ];
+    specialWrap.innerHTML = specials.map(p => `
+      <div class="rules-path-item">
+        ${rulesPathIcon(p.key)}
+        <div class="rules-path-text"><strong>${p.name}</strong><span>${p.desc}</span></div>
+      </div>
+    `).join('');
+  }
+}
+
+/* Sous-chapitres du menu Règles (voir #rulesTabs dans index.html) — demandé
+   explicitement pour rendre le menu "plus lisible, claire et simple" (un
+   seul long mur de texte à faire défiler avant). Un seul écouteur par
+   bouton, posé une fois (voir wireEvents()) ; jamais reconstruit. */
+function initRulesTabs() {
+  document.querySelectorAll('.rules-tab').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.rules-tab').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.rules-section').forEach(s => s.classList.remove('active'));
+      btn.classList.add('active');
+      const section = document.querySelector(`.rules-section[data-section="${btn.dataset.tab}"]`);
+      if (section) section.classList.add('active');
+    });
+  });
+}
+
 /* Rangs de record (0=Bronze .. 5=Divin), une seule échelle de couleurs
    partagée par TOUS les records — demandé explicitement ("chaque record doit
    être associé à une couleur qui est associée à un chiffre qui est le
@@ -1228,6 +1292,7 @@ function renderLanguageOptions() {
       applyStaticI18n();
       renderSettings();
       renderRulesNpcOffers();
+      renderRulesPaths();
       render();
       if (window.regenerateHub) window.regenerateHub();
     });
@@ -1372,9 +1437,11 @@ function wireEvents() {
 
   document.getElementById('btnRules').addEventListener('click', () => {
     renderRulesNpcOffers();
+    renderRulesPaths();
     showOverlay('rulesOverlay');
   });
   document.getElementById('btnCloseRules').addEventListener('click', () => hideOverlay('rulesOverlay'));
+  initRulesTabs();
 
   document.getElementById('btnStats').addEventListener('click', () => {
     renderStats();

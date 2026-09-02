@@ -127,31 +127,75 @@
         <h2 data-i18n="rules.title">Règles</h2>
         <button class="close-btn" id="btnCloseRules">✕</button>
       </div>
+
+      <div class="rules-tabs" id="rulesTabs">
+        <button class="rules-tab active" data-tab="overview">
+          <svg viewBox="0 0 20 20" class="rules-tab-icon"><circle cx="10" cy="10" r="8"/><path d="M10 2 V5 M10 15 V18 M2 10 H5 M15 10 H18"/><circle cx="10" cy="10" r="1.4" fill="currentColor" stroke="none"/></svg>
+          <span data-i18n="rules.tab.overview">Aperçu</span>
+        </button>
+        <button class="rules-tab" data-tab="dice">
+          <svg viewBox="0 0 20 20" class="rules-tab-icon"><rect x="3" y="3" width="14" height="14" rx="3"/><circle cx="7" cy="7" r="1.1" fill="currentColor" stroke="none"/><circle cx="13" cy="7" r="1.1" fill="currentColor" stroke="none"/><circle cx="10" cy="10" r="1.1" fill="currentColor" stroke="none"/><circle cx="7" cy="13" r="1.1" fill="currentColor" stroke="none"/><circle cx="13" cy="13" r="1.1" fill="currentColor" stroke="none"/></svg>
+          <span data-i18n="rules.tab.dice">Le Dé</span>
+        </button>
+        <button class="rules-tab" data-tab="paths">
+          <svg viewBox="0 0 20 20" class="rules-tab-icon"><path d="M10 18 V9"/><path d="M10 9 L4 3 M10 9 L16 3"/><path d="M4 3 L4 6 M16 3 L16 6" stroke-linecap="round"/></svg>
+          <span data-i18n="rules.tab.paths">Chemins</span>
+        </button>
+        <button class="rules-tab" data-tab="npcs">
+          <svg viewBox="0 0 20 20" class="rules-tab-icon"><circle cx="10" cy="6.5" r="3.3"/><path d="M3 18 C3 12.5 6.5 11 10 11 C13.5 11 17 12.5 17 18"/></svg>
+          <span data-i18n="rules.tab.npcs">PNJ</span>
+        </button>
+        <button class="rules-tab" data-tab="story">
+          <svg viewBox="0 0 20 20" class="rules-tab-icon"><path d="M4 4 C7 3 9 3.6 10 4.6 C11 3.6 13 3 16 4 V16 C13 15 11 15.6 10 16.6 C9 15.6 7 15 4 16 Z"/><path d="M10 4.6 V16.6"/></svg>
+          <span data-i18n="rules.tab.story">Histoire</span>
+        </button>
+      </div>
+
       <div class="rules-body">
-        <h3 data-i18n="rules.paths.title">Chemins</h3>
-        <p data-i18n="rules.paths.body">Chaque tour, 8 chemins s'offrent à vous. En prendre un l'applique aussitôt, vous traversez le passage, puis le Dé du Jugement tombe et une nouvelle salle apparaît.</p>
-        <h3 data-i18n="rules.dice.title">Dé du Jugement</h3>
-        <p data-i18n="rules.dice.body">50 faces au départ, une de moins à chaque tour. Sur "1" : vous perdez tout l'or de la partie et la roue reprend son nombre de faces initial.</p>
-        <h3 data-i18n="rules.runGold.title">Or de la partie</h3>
-        <p data-i18n="rules.runGold.body">Multiplié par le nombre de tours joués. Plus vous restez, plus il pèse — et plus vous risquez de tout perdre d'un coup.</p>
-        <h3 data-i18n="rules.actionPaths.title">Chemins d'action</h3>
-        <ul>
-          <li data-i18n-html="rules.actionPaths.mine"><strong>Mine</strong> — +1 or dans 10 tours.</li>
-          <li data-i18n-html="rules.actionPaths.canal"><strong>Canalisation</strong> — +1 énergie/tour, toute la partie.</li>
-          <li data-i18n-html="rules.actionPaths.anti"><strong>Anti-destinée</strong> — le prochain lancer ne peut pas faire 1.</li>
-          <li data-i18n-html="rules.actionPaths.rejet"><strong>Rejet</strong> — relance : sauve automatiquement d'un 1.</li>
-          <li data-i18n-html="rules.actionPaths.rajeun"><strong>Rajeunissement</strong> — +1 face au dé, toute la partie.</li>
-        </ul>
-        <p data-i18n="rules.actionPaths.closed">Un chemin d'action fermé (barré) signifie que vous n'avez pas l'énergie pour le prendre.</p>
-        <h3 data-i18n="rules.specialPaths.title">Chemins spéciaux</h3>
-        <p data-i18n-html="rules.specialPaths.body"><strong>Ne rien faire</strong> : passe le tour sans effet. <strong>Doubler énergie</strong> : x2 immédiat, 1 seule fois par partie — une fois pris, ce chemin disparaît. <strong>Récupérer l'or</strong> : banque l'or de la partie dans votre or permanent, la partie continue.</p>
-        <h3 data-i18n="rules.costs.title">Coûts des actions</h3>
-        <p data-i18n="rules.costs.body">+20% par achat, remis à zéro à chaque nouvelle partie.</p>
-        <h3 data-i18n="rules.npcs.title">Les PNJ</h3>
-        <p data-i18n="rules.npcs.body">Chaque PNJ a une petite chance d'apparaître dans une salle. Visez-le et appuyez sur la touche dédiée pour lui parler. Leurs achats (contre de l'or banqué, sauf le Parieur qui est gratuit) sont permanents, pour toutes vos parties futures. Leurs prix augmentent de 20% à chaque achat.</p>
-        <div id="rulesNpcOffers"></div>
-        <h3 data-i18n="rules.story.title">Histoire</h3>
-        <p data-i18n="rules.story.body">Les PNJ sont des gens qui n'ont jamais réussi à combler leur propre avidité. Devenus vieux, ils ont fini par abandonner — et ont choisi, à défaut, de vous aider à combler la vôtre.</p>
+        <section class="rules-section active" data-section="overview">
+          <p data-i18n="rules.overview.intro">Chaque tour, vous entrez dans une salle avec plusieurs chemins. En choisir un l'applique aussitôt, puis le Dé du Jugement tombe — la roue rétrécit à chaque tour, alors jusqu'où irez-vous ?</p>
+          <svg class="room-diagram" viewBox="0 0 200 200" aria-hidden="true">
+            <path d="M 178.8 113.9 A 80 80 0 1 1 21.2 113.9" class="room-diagram-npczone"/>
+            <circle cx="100" cy="100" r="80" class="room-diagram-wall"/>
+            <g class="room-diagram-doors">
+              <circle cx="21.2" cy="86.1" r="4.5"/><circle cx="32.7" cy="56.8" r="4.5"/><circle cx="54.9" cy="33.9" r="4.5"/><circle cx="84.1" cy="21.6" r="4.5"/>
+              <circle cx="115.9" cy="21.6" r="4.5"/><circle cx="145.1" cy="33.9" r="4.5"/><circle cx="167.3" cy="56.8" r="4.5"/><circle cx="178.8" cy="86.1" r="4.5"/>
+            </g>
+            <circle cx="100" cy="100" r="5" class="room-diagram-you"/>
+          </svg>
+          <div class="room-diagram-legend">
+            <span><i class="legend-dot legend-dot-door"></i> <span data-i18n="rules.overview.diagram.doors">Chemins</span></span>
+            <span><i class="legend-dot legend-dot-npc"></i> <span data-i18n="rules.overview.diagram.npcZone">PNJ</span></span>
+            <span><i class="legend-dot legend-dot-you"></i> <span data-i18n="rules.overview.diagram.you">Vous</span></span>
+          </div>
+          <p class="rules-caption" data-i18n="rules.overview.diagramCaption">Vue de dessus d'une salle : les chemins s'ouvrent devant vous, les PNJ apparaissent parfois derrière.</p>
+        </section>
+
+        <section class="rules-section" data-section="dice">
+          <h3 data-i18n="rules.dice.title">Dé du Jugement</h3>
+          <p data-i18n="rules.dice.body">50 faces au départ, une de moins à chaque tour. Sur "1" : vous perdez tout l'or de la partie et la roue reprend son nombre de faces initial.</p>
+          <h3 data-i18n="rules.runGold.title">Or de la partie</h3>
+          <p data-i18n="rules.runGold.body">Multiplié par le nombre de tours joués. Plus vous restez, plus il pèse — et plus vous risquez de tout perdre d'un coup.</p>
+        </section>
+
+        <section class="rules-section" data-section="paths">
+          <h3 data-i18n="rules.actionPaths.title">Chemins d'action</h3>
+          <div class="rules-path-list" id="rulesActionPaths"></div>
+          <p class="rules-caption" data-i18n="rules.actionPaths.closed">Un chemin d'action fermé (barré) signifie que vous n'avez pas l'énergie pour le prendre.</p>
+          <h3 data-i18n="rules.specialPaths.title">Chemins spéciaux</h3>
+          <div class="rules-path-list" id="rulesSpecialPaths"></div>
+          <h3 data-i18n="rules.costs.title">Coûts des actions</h3>
+          <p data-i18n="rules.costs.body">+20% par achat, remis à zéro à chaque nouvelle partie.</p>
+        </section>
+
+        <section class="rules-section" data-section="npcs">
+          <p data-i18n="rules.npcs.body">Chaque PNJ a une petite chance d'apparaître dans une salle. Visez-le et appuyez sur la touche dédiée pour lui parler. Leurs achats (contre de l'or banqué, sauf le Parieur qui est gratuit) sont permanents, pour toutes vos parties futures. Leurs prix augmentent de 20% à chaque achat.</p>
+          <div id="rulesNpcOffers"></div>
+        </section>
+
+        <section class="rules-section" data-section="story">
+          <p class="lore" data-i18n="rules.story.body">Les PNJ sont des gens qui n'ont jamais réussi à combler leur propre avidité. Devenus vieux, ils ont fini par abandonner — et ont choisi, à défaut, de vous aider à combler la vôtre.</p>
+        </section>
       </div>
     </div>
   </div>
@@ -233,9 +277,9 @@
 }
 </script>
 <script src="https://unpkg.com/three@0.155.0/build/three.js"></script>
-<script src="js/i18n.js?v=6"></script>
+<script src="js/i18n.js?v=7"></script>
 <script src="js/audio.js?v=4"></script>
-<script src="js/game.js?v=33"></script>
+<script src="js/game.js?v=34"></script>
 <script src="js/scene3d.js?v=54"></script>
 </body>
 </html>

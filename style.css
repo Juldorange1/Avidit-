@@ -618,20 +618,92 @@ h1,h2,h3,.badge,.stat .label,.accept-btn,.ghost-btn,button{
 .reset-btn:hover{ border-color:var(--danger); color:var(--danger-glow); }
 
 /* ---------- RULES ---------- */
+/* Refonte en sous-chapitres (onglets) + icônes + petit schéma de salle —
+   demandé explicitement ("bien plus lisible, claire et simple... tu peux y
+   mettre image, sous-chapitre") : un long mur de texte à faire défiler
+   devient 5 petites sections courtes, chacune consultée séparément. */
 #rulesOverlay, #settingsOverlay{ z-index:40; }
 .rules-card{ max-width:640px; text-align:left; max-height:80vh; overflow-y:auto; }
+.rules-card::-webkit-scrollbar{ width:6px; }
+.rules-card::-webkit-scrollbar-thumb{ background:var(--gold-dark); border-radius:3px; }
+
+.rules-tabs{
+  display:flex; flex-wrap:wrap; gap:6px;
+  margin:14px 0 18px;
+  padding-bottom:14px;
+  border-bottom:1px solid var(--panel-border);
+}
+.rules-tab{
+  display:flex; align-items:center; gap:6px;
+  background:transparent;
+  border:1px solid var(--panel-border);
+  color:var(--ink-dim);
+  border-radius:20px;
+  padding:6px 12px 6px 8px;
+  font-family:'Cinzel', serif;
+  font-size:0.72rem;
+  letter-spacing:0.03em;
+  cursor:pointer;
+  transition:all 0.15s ease;
+}
+.rules-tab:hover{ border-color:var(--gold-dim); color:var(--ink); }
+.rules-tab.active{
+  border-color:var(--gold);
+  color:#1a1206;
+  background:linear-gradient(180deg, var(--gold), var(--gold-dark));
+}
+.rules-tab-icon{
+  width:16px; height:16px; flex:0 0 auto;
+  fill:none; stroke:currentColor; stroke-width:1.4; stroke-linecap:round; stroke-linejoin:round;
+}
+
+.rules-section{ display:none; animation:fadein 0.25s ease; }
+.rules-section.active{ display:block; }
 .rules-body h3{
   color:var(--gold);
   font-size:0.95rem;
   letter-spacing:0.06em;
   margin:16px 0 6px;
 }
-.rules-body h3:first-child{ margin-top:4px; }
+.rules-section > h3:first-child{ margin-top:4px; }
 .rules-body p{ color:var(--ink); font-size:0.92rem; line-height:1.5; margin:0 0 6px; }
 .rules-body ul{ margin:0 0 6px; padding-left:20px; color:var(--ink); font-size:0.92rem; line-height:1.5; }
 .rules-body li{ margin-bottom:3px; }
-.rules-card::-webkit-scrollbar{ width:6px; }
-.rules-card::-webkit-scrollbar-thumb{ background:var(--gold-dark); border-radius:3px; }
+.rules-caption{ color:var(--ink-dim) !important; font-size:0.82rem !important; font-style:italic; text-align:center; }
+
+/* ---- schéma de salle (onglet Aperçu) ---- */
+.room-diagram{ display:block; width:min(220px, 100%); margin:14px auto; }
+.room-diagram-wall{ fill:none; stroke:var(--panel-border); stroke-width:2.5; }
+.room-diagram-npczone{ fill:none; stroke:#c98dd6; stroke-width:7; stroke-linecap:round; opacity:0.5; }
+.room-diagram-doors circle{ fill:var(--gold); stroke:var(--gold-dark); stroke-width:1; }
+.room-diagram-you{ fill:var(--gold-light); stroke:#1a1206; stroke-width:1.5; }
+.room-diagram-legend{
+  display:flex; justify-content:center; gap:16px; flex-wrap:wrap;
+  font-size:0.72rem; color:var(--ink-dim);
+  margin-bottom:8px;
+}
+.room-diagram-legend span{ display:inline-flex; align-items:center; gap:5px; }
+.legend-dot{ width:9px; height:9px; border-radius:50%; display:inline-block; }
+.legend-dot-door{ background:var(--gold); }
+.legend-dot-npc{ background:#c98dd6; }
+.legend-dot-you{ background:var(--gold-light); box-shadow:0 0 4px rgba(255,246,216,0.8); }
+
+/* ---- listes de chemins avec icône (onglet Chemins) ---- */
+.rules-path-list{ display:flex; flex-direction:column; gap:8px; margin:10px 0 16px; }
+.rules-path-item{
+  display:flex; align-items:flex-start; gap:12px;
+  background:linear-gradient(160deg, rgba(40,30,14,0.9), rgba(14,10,5,0.95));
+  border:1px solid var(--panel-border);
+  border-radius:10px;
+  padding:10px 14px;
+}
+.rules-path-icon{
+  width:22px; height:22px; flex:0 0 auto; margin-top:1px;
+  fill:none; stroke:var(--gold); stroke-width:1.5; stroke-linecap:round; stroke-linejoin:round;
+}
+.rules-path-text{ display:flex; flex-direction:column; gap:2px; }
+.rules-path-text strong{ color:var(--gold-light); font-family:'Cinzel', serif; font-size:0.85rem; }
+.rules-path-text span{ color:var(--ink-dim); font-size:0.8rem; line-height:1.4; }
 
 /* ---------- RECORDS ---------- */
 /* Chaque record (voir RECORD_RANKS/getRecords() dans game.js) porte sa
