@@ -1,0 +1,16 @@
+{
+  "name": "avidite",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Avidité — Le Dé du Jugement : roguelike 3D push-your-luck en vue première personne",
+  "main": "electron/main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "devDependencies": {
+    "electron": "^33.0.0"
+  },
+  "allowScripts": {
+    "electron@33.4.11": true
+  }
+}

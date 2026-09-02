@@ -1478,6 +1478,17 @@ function wireEvents() {
     render();
   });
 
+  // "vraie application à lancer, pas dans un navigateur... même avec un
+  // bouton pour quitter le jeu" (demandé explicitement, en vue d'une future
+  // publication Steam) — voir electron/preload.js. window.electronAPI
+  // n'existe QUE dans l'appli empaquetée (Electron) : dans un navigateur
+  // normal, ce bouton reste caché, il n'y a rien à "quitter".
+  const btnQuit = document.getElementById('btnQuit');
+  if (window.electronAPI && window.electronAPI.isElectron) {
+    btnQuit.hidden = false;
+    btnQuit.addEventListener('click', () => window.electronAPI.quit());
+  }
+
   document.getElementById('btnNewSlot').addEventListener('click', createNewSlot);
   document.getElementById('btnBackToMenu').addEventListener('click', showSlotsScreen);
 

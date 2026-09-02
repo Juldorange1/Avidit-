@@ -48,6 +48,43 @@ demande de nouveaux assets suit la même règle : proposer des pistes précises
 (fichier + taille + licence), attendre l'accord, puis télécharger directement
 (aucun besoin que l'utilisateur télécharge quoi que ce soit lui-même).
 
+## Application de bureau (Electron) — vue vers Steam
+
+**Demandé le 2026-09-02** : l'utilisateur veut à terme vendre Avidité sur
+Steam, donc une vraie application à lancer (pas un onglet de navigateur),
+avec un bouton pour quitter. Mis en place :
+- `package.json` (racine) + `electron/main.js` + `electron/preload.js`.
+  Node.js/npm installés sur la machine (`winget install OpenJS.NodeJS.LTS`),
+  `electron` en devDependency (`npm install`, script `npm start`).
+- `electron/main.js` fait tourner un petit serveur HTTP local (module `http`
+  intégré à Node, port 5510 — distinct du 5507 du serveur de dev navigateur)
+  qui sert `index.html`/`js/`/`assets/`/`style.css` **tels quels, sans
+  aucune modification** ; la fenêtre Electron charge ce serveur via
+  `http://127.0.0.1:5510/`, PAS via `file://` — évite tout écart de
+  comportement (CORS, chargement d'assets) entre navigateur et appli
+  empaquetée. Le jeu ne sait même pas qu'il tourne dans Electron, sauf pour
+  le bouton Quitter ci-dessous.
+- Bouton "Quitter le jeu" dans les Paramètres (`#btnQuit`, `js/game.js`) :
+  cablé sur `window.electronAPI.quit()`, exposé par `electron/preload.js`
+  via `contextBridge` (jamais d'accès Node direct depuis le jeu —
+  `contextIsolation:true`). Ce global n'existe QUE dans l'appli Electron :
+  le bouton reste caché dans un navigateur normal, sans aucun effet.
+- `node_modules/` et `dist/` sont dans `.gitignore` — jamais commités.
+  Après un clone frais : `npm install` (l'exécutable Electron lui-même se
+  télécharge automatiquement au premier install, ~190 Mo).
+- Testé : `npm start` ouvre bien une fenêtre native titrée "Avidité — Le Dé
+  du Jugement", le contenu chargé (vérifié directement via le serveur
+  127.0.0.1:5510) est identique au jeu navigateur, aucune erreur console.
+  Le bouton Quitter lui-même n'a pas pu être testé par un clic réel dans
+  cette session (fenêtre native hors de portée des outils de test
+  disponibles) — son câblage suit un pattern Electron standard et éprouvé,
+  mais un vrai clic par l'utilisateur reste la vérification ultime.
+- **Pas encore fait** (étapes suivantes vers Steam, si/quand demandé) :
+  icône d'application, configuration `electron-builder`/`electron-forge`
+  pour produire un vrai `.exe` installable, page Steamworks, achievements
+  Steam éventuels, etc. — tout ça n'a pas été abordé, seule l'étape "faire
+  tourner le jeu dans une fenêtre native avec un bouton Quitter" l'a été.
+
 ## Fichiers
 
 - `index.html` — page unique, tout le HTML/overlays.
