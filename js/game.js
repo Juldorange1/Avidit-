@@ -79,8 +79,11 @@ const PATH_IDS = ['mine', 'canal', 'anti', 'rejet', 'rajeun', 'skip', 'double', 
 /* Raccourcis clavier : uniquement le déplacement (marcher jusqu'à un chemin
    pour le choisir, ou sauter). Stockés en `.code` (position physique de la
    touche), ce qui fait marcher WASD et ZQSD indifféremment selon la disposition. */
-const DEFAULT_MOVE_KEYS = { forward: 'KeyW', back: 'KeyS', left: 'KeyA', right: 'KeyD', jump: 'Space' };
-const MOVE_KEY_ORDER = ['forward', 'back', 'left', 'right', 'jump'];
+// "pause" ouvre/ferme le menu de partie (Règles/Records/Paramètres/Quitter,
+// voir handlePauseKey()) — rebindable comme les touches de déplacement,
+// mêmes mécanismes de conflit/réinitialisation (voir startRebind()).
+const DEFAULT_MOVE_KEYS = { forward: 'KeyW', back: 'KeyS', left: 'KeyA', right: 'KeyD', jump: 'Space', pause: 'Escape' };
+const MOVE_KEY_ORDER = ['forward', 'back', 'left', 'right', 'jump', 'pause'];
 function moveKeyLabel(dir) { return t('moveKey.' + dir); }
 
 const DICE_SPEEDS = {
@@ -255,16 +258,18 @@ function migrateLegacySaveIfNeeded() {
 }
 
 /* Écran affiché au chargement de la page (voir init()) ET accessible en
-   cours de partie via le bouton "Menu" de la barre d'outils — demandé
-   explicitement : choisir/créer/supprimer une partie, comme Hades/Isaac/
-   Minecraft. Mettre en pause : libère le curseur et masque le jeu, sans
-   jamais détruire la scène 3D déjà construite (elle sera juste régénérée
-   avec l'état de la prochaine partie choisie, voir enterSlot()). */
+   cours de partie via "Quitter" dans le menu pause — demandé explicitement :
+   choisir/créer/supprimer une partie, comme Hades/Isaac/Minecraft. Mettre en
+   pause : libère le curseur et masque le jeu, sans jamais détruire la scène
+   3D déjà construite (elle sera juste régénérée avec l'état de la prochaine
+   partie choisie, voir enterSlot()). Referme aussi tout overlay de gameplay
+   encore ouvert (pause/règles/records/paramètres/PNJ) : "Quitter" peut être
+   cliqué depuis n'importe lequel d'entre eux. */
 function showSlotsScreen() {
   if (document.pointerLockElement) document.exitPointerLock();
   const playArea = document.getElementById('playArea');
   if (playArea) playArea.hidden = true;
-  document.getElementById('toolbar').hidden = true;
+  ['pauseOverlay', 'rulesOverlay', 'statsOverlay', 'settingsOverlay', 'npcOverlay'].forEach(hideOverlay);
   renderSlotsScreen();
   document.getElementById('slotsScreen').hidden = false;
 }
@@ -347,7 +352,6 @@ function enterSlot(id) {
   if (!resuming && window.resetRoomEntryState) window.resetRoomEntryState();
 
   document.getElementById('slotsScreen').hidden = true;
-  document.getElementById('toolbar').hidden = false;
   newRun();
 }
 
@@ -1233,7 +1237,7 @@ function hideOverlay(id) {
   document.getElementById(id).hidden = true;
 }
 
-/* ============================= RACCOURCIS CLAVIER (déplacement uniquement) ============================= */
+/* ============================= RACCOURCIS CLAVIER (déplacement + pause) ============================= */
 
 function codeLabel(code) {
   if (!code) return '—';
@@ -1365,12 +1369,40 @@ function startRebind(dir, buttonEl) {
   window.addEventListener('keydown', handler, true);
 }
 
-function handleGlobalEscape(e) {
-  if (e.key !== 'Escape' || rebindListenerActive) return;
-  ['settingsOverlay', 'rulesOverlay', 'npcOverlay', 'statsOverlay'].forEach(id => {
-    const el = document.getElementById(id);
-    if (!el.hidden) el.hidden = true;
-  });
+/* Touche "pause" (Échap par défaut, rebindable — voir DEFAULT_MOVE_KEYS) :
+   remplace l'ancien handleGlobalEscape() figé sur Échap. Referme en cascade
+   (sous-menu ouvert → retour au menu pause ; menu pause ouvert → reprend le
+   jeu ; rien d'ouvert → ouvre le menu pause) — demandé explicitement ("il y
+   a aussi un bouton pour reprendre où l'on peut aussi quitter ce menu de
+   menu en appuyant sur la touche associée qui permet de l'ouvrir"). Le
+   panneau PNJ garde son propre comportement (n'importe quand fermable par
+   cette même touche, mais ne fait jamais partie de la pile pause/sous-menu). */
+function handlePauseKey(e) {
+  if (rebindListenerActive) return;
+  const pauseCode = (meta.moveKeys && meta.moveKeys.pause) || 'Escape';
+  if (e.code !== pauseCode) return;
+
+  const npcOv = document.getElementById('npcOverlay');
+  if (!npcOv.hidden) { hideOverlay('npcOverlay'); return; }
+
+  const subOverlayIds = ['rulesOverlay', 'statsOverlay', 'settingsOverlay'];
+  const openSub = subOverlayIds.find(id => !document.getElementById(id).hidden);
+  if (openSub) { hideOverlay(openSub); showOverlay('pauseOverlay'); return; }
+
+  const pauseOv = document.getElementById('pauseOverlay');
+  if (!pauseOv.hidden) { hideOverlay('pauseOverlay'); return; }
+
+  if (!run) return; // rien à mettre en pause (écran de sélection de partie)
+  openPauseMenu();
+}
+
+/* Ouvre le menu pause — depuis le clavier (handlePauseKey) ou le petit
+   bouton à côté du nom de la zone (#btnPauseMenu, voir wireEvents()). Met le
+   jeu en pause : scene3d.js gate le déplacement sur anyOverlayVisible(), qui
+   inclut désormais pauseOverlay (voir scene3d.js). */
+function openPauseMenu() {
+  if (document.pointerLockElement) document.exitPointerLock();
+  showOverlay('pauseOverlay');
 }
 
 /* ============================= DECOR (étoiles + cadran) ============================= */
@@ -1435,25 +1467,43 @@ function wireEvents() {
     if (window.SFX) SFX.setVolume(meta.sfxVolume);
   });
 
+  // Règles/Records/Paramètres s'ouvrent maintenant DEPUIS le menu pause (pas
+  // une barre d'outils toujours visible) — voir openPauseMenu()/
+  // handlePauseKey(). Fermer l'une de ces 3 sous-fenêtres revient au menu
+  // pause plutôt que de reprendre directement le jeu (seul "Reprendre",
+  // ou rappuyer sur la touche pause depuis le menu pause lui-même, reprend
+  // vraiment) — demandé explicitement.
   document.getElementById('btnRules').addEventListener('click', () => {
     renderRulesNpcOffers();
     renderRulesPaths();
+    hideOverlay('pauseOverlay');
     showOverlay('rulesOverlay');
   });
-  document.getElementById('btnCloseRules').addEventListener('click', () => hideOverlay('rulesOverlay'));
+  document.getElementById('btnCloseRules').addEventListener('click', () => {
+    hideOverlay('rulesOverlay');
+    showOverlay('pauseOverlay');
+  });
   initRulesTabs();
 
   document.getElementById('btnStats').addEventListener('click', () => {
     renderStats();
+    hideOverlay('pauseOverlay');
     showOverlay('statsOverlay');
   });
-  document.getElementById('btnCloseStats').addEventListener('click', () => hideOverlay('statsOverlay'));
+  document.getElementById('btnCloseStats').addEventListener('click', () => {
+    hideOverlay('statsOverlay');
+    showOverlay('pauseOverlay');
+  });
 
   document.getElementById('btnSettings').addEventListener('click', () => {
     renderSettings();
+    hideOverlay('pauseOverlay');
     showOverlay('settingsOverlay');
   });
-  document.getElementById('btnCloseSettings').addEventListener('click', () => hideOverlay('settingsOverlay'));
+  document.getElementById('btnCloseSettings').addEventListener('click', () => {
+    hideOverlay('settingsOverlay');
+    showOverlay('pauseOverlay');
+  });
   document.getElementById('btnResetKeybinds').addEventListener('click', () => {
     meta.moveKeys = { ...DEFAULT_MOVE_KEYS };
     saveMeta();
@@ -1490,9 +1540,15 @@ function wireEvents() {
   }
 
   document.getElementById('btnNewSlot').addEventListener('click', createNewSlot);
+  // "Quitter" (menu pause) = quitter CETTE partie pour revenir à l'écran de
+  // sélection — pas "Quitter le jeu" (Electron, ci-dessus, ferme toute
+  // l'application). Deux actions différentes, jamais confondues dans l'UI
+  // (voir toolbar.quit vs settings.quit dans i18n.js).
   document.getElementById('btnBackToMenu').addEventListener('click', showSlotsScreen);
+  document.getElementById('btnResume').addEventListener('click', () => hideOverlay('pauseOverlay'));
+  document.getElementById('btnPauseMenu').addEventListener('click', openPauseMenu);
 
-  window.addEventListener('keydown', handleGlobalEscape);
+  window.addEventListener('keydown', handlePauseKey);
 }
 
 /* Écran de sélection de partie au chargement (voir showSlotsScreen()) —

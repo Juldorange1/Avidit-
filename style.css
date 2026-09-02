@@ -349,17 +349,35 @@ h1,h2,h3,.badge,.stat .label,.accept-btn,.ghost-btn,button{
 .stat .val.gold{ color:#e8c85a; }
 .stat .val.bank{ color:#c9b98a; }
 
-/* ---------- TOOLBAR ---------- */
-.toolbar{
-  position:fixed; top:10px; right:10px; z-index:50;
-  display:flex; gap:6px;
+/* ---------- MENU PAUSE ---------- */
+/* Règles/Records/Paramètres/Quitter ne sont plus une barre d'outils toujours
+   visible pendant la partie (gênait la lecture de la salle) — demandé
+   explicitement : accessibles seulement via un petit bouton à côté du nom
+   de la zone, ou une touche dédiée (Échap par défaut, configurable comme
+   les touches de déplacement — voir MOVE_KEY_ORDER/meta.moveKeys.pause dans
+   game.js), qui met le jeu en pause et ouvre ce menu. */
+.zone-banner-row{
+  display:flex; align-items:center; gap:8px;
+  margin-bottom:6px;
 }
-.toolbar .ghost-btn{
-  padding:5px 10px;
-  font-size:0.68rem;
+.pause-btn{
+  pointer-events:auto;
+  flex:0 0 auto;
+  width:26px; height:26px;
   background:rgba(10,7,4,0.75);
+  border:1px solid var(--panel-border);
+  border-radius:6px;
+  color:var(--gold-light);
+  font-size:0.85rem;
+  line-height:1;
+  cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
   backdrop-filter:blur(2px);
 }
+.pause-btn:hover{ border-color:var(--gold); }
+.pause-card{ max-width:340px; text-align:center; }
+.pause-menu-list{ display:flex; flex-direction:column; gap:10px; margin-top:18px; }
+.pause-menu-list .ghost-btn{ width:100%; padding:11px; font-size:0.8rem; }
 
 .inventory{
   position:relative; z-index:2;
@@ -454,25 +472,15 @@ h1,h2,h3,.badge,.stat .label,.accept-btn,.ghost-btn,button{
 @media (max-width:760px), (max-height:640px){
   .hud3d{ width:min(180px, 55vw); }
   .dial-widget{ width:min(100px, 26vw); top:48px; }
-  .toolbar{ gap:4px; }
-  .toolbar .ghost-btn{ padding:5px 8px; font-size:0.62rem; }
   .overlay{ padding:10px; }
   .overlay-card{ padding:22px 18px; }
   .overlay-card h2{ font-size:1.4rem; }
   .lock-prompt{ max-width:88vw; }
 }
 
-/* Téléphone étroit : sur un écran ~375-430px de large, le HUD (haut-gauche)
-   et la barre d'outils (haut-droite) se chevauchaient encore (le point de
-   rupture 760px ci-dessus suffit pour une tablette mais pas un téléphone en
-   portrait) — mesuré/confirmé : bannière de zone recouverte par les
-   boutons "Règles/Succès/Paramètres". Rétréci encore, et le nom de zone
-   passe sur une taille de police plus modeste pour ne jamais forcer un
-   retour à la ligne qui grandirait la boîte HUD sous la barre d'outils. */
 @media (max-width:480px){
   .hud3d{ width:min(148px, 46vw); }
   .zone-banner{ font-size:0.62rem; }
-  .toolbar .ghost-btn{ padding:4px 6px; font-size:0.56rem; }
 }
 
 /* ---------- BUTTONS (generic) ---------- */

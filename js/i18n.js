@@ -22,7 +22,9 @@ const STRINGS = {
     'toolbar.rules': 'Règles',
     'toolbar.stats': 'Records',
     'toolbar.settings': 'Paramètres',
-    'toolbar.menu': 'Menu',
+    'toolbar.quit': 'Quitter',
+    'pause.title': 'Menu',
+    'pause.resume': 'Reprendre',
 
     'slots.title': 'Choisir une partie',
     'slots.new': '+ Nouvelle partie',
@@ -48,7 +50,6 @@ const STRINGS = {
     'rules.tab.dice': 'Le Dé',
     'rules.tab.paths': 'Chemins',
     'rules.tab.npcs': 'PNJ',
-    'rules.tab.story': 'Histoire',
     'rules.overview.intro': "Chaque tour, vous entrez dans une salle avec plusieurs chemins. En choisir un l'applique aussitôt, puis le Dé du Jugement tombe — la roue rétrécit à chaque tour, alors jusqu'où irez-vous ?",
     'rules.overview.diagramCaption': "Vue de dessus d'une salle : les chemins s'ouvrent devant vous, les PNJ apparaissent parfois derrière.",
     'rules.overview.diagram.doors': 'Chemins',
@@ -67,7 +68,6 @@ const STRINGS = {
     'rules.costs.title': 'Coûts des actions',
     'rules.costs.body': '+20% par achat, remis à zéro à chaque nouvelle partie.',
     'rules.npcs.body': 'Chaque PNJ a une petite chance d\'apparaître dans une salle. Visez-le et appuyez sur la touche dédiée pour lui parler. Leurs achats (contre de l\'or banqué, sauf le Parieur qui est gratuit) sont permanents, pour toutes vos parties futures. Leurs prix augmentent de 20% à chaque achat.',
-    'rules.story.body': "Les PNJ sont des gens qui n'ont jamais réussi à combler leur propre avidité. Devenus vieux, ils ont fini par abandonner — et ont choisi, à défaut, de vous aider à combler la vôtre.",
 
     'settings.title': 'Paramètres',
     'settings.diceSpeed.label': 'Vitesse du dé',
@@ -121,6 +121,7 @@ const STRINGS = {
     'moveKey.left': 'Aller à gauche',
     'moveKey.right': 'Aller à droite',
     'moveKey.jump': 'Sauter',
+    'moveKey.pause': 'Ouvrir/fermer le menu',
 
     'diceSpeed.lente': 'Lente',
     'diceSpeed.normale': 'Normale',
@@ -216,7 +217,9 @@ const STRINGS = {
     'toolbar.rules': 'Rules',
     'toolbar.stats': 'Records',
     'toolbar.settings': 'Settings',
-    'toolbar.menu': 'Menu',
+    'toolbar.quit': 'Quit',
+    'pause.title': 'Menu',
+    'pause.resume': 'Resume',
 
     'slots.title': 'Choose a save',
     'slots.new': '+ New game',
@@ -242,7 +245,6 @@ const STRINGS = {
     'rules.tab.dice': 'The Wheel',
     'rules.tab.paths': 'Paths',
     'rules.tab.npcs': 'NPCs',
-    'rules.tab.story': 'Story',
     'rules.overview.intro': "Each turn, you enter a room with several paths. Choosing one applies it immediately, then the Wheel of Judgment falls — the wheel shrinks every turn, so how far will you go?",
     'rules.overview.diagramCaption': "Top-down view of a room: paths open up ahead of you, NPCs sometimes appear behind.",
     'rules.overview.diagram.doors': 'Paths',
@@ -261,7 +263,6 @@ const STRINGS = {
     'rules.costs.title': 'Action costs',
     'rules.costs.body': '+20% per purchase, reset at the start of every new run.',
     'rules.npcs.body': 'Each NPC has a small chance of appearing in a room. Aim at them and press the dedicated key to talk. Their purchases (paid with banked gold, except the Gambler who is free) are permanent, for all your future runs. Their prices increase by 20% with each purchase.',
-    'rules.story.body': "The NPCs are people who never managed to satisfy their own greed. Grown old, they eventually gave up — and chose, instead, to help you satisfy yours.",
 
     'settings.title': 'Settings',
     'settings.diceSpeed.label': 'Wheel speed',
@@ -315,6 +316,7 @@ const STRINGS = {
     'moveKey.left': 'Left',
     'moveKey.right': 'Right',
     'moveKey.jump': 'Jump',
+    'moveKey.pause': 'Open/close menu',
 
     'diceSpeed.lente': 'Slow',
     'diceSpeed.normale': 'Normal',
@@ -420,6 +422,9 @@ function applyStaticI18n() {
   });
   document.querySelectorAll('[data-i18n-html]').forEach(el => {
     el.innerHTML = t(el.getAttribute('data-i18n-html'));
+  });
+  document.querySelectorAll('[data-i18n-title]').forEach(el => {
+    el.title = t(el.getAttribute('data-i18n-title'));
   });
   document.title = t('page.title');
 }

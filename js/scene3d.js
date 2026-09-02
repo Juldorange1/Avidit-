@@ -379,7 +379,7 @@ function isDown(dir) {
    updateJump(), le joystick "appuie sur des touches virtuelles". */
 
 const TOUCH_MOVE_CODES = { forward: 'ArrowUp', back: 'ArrowDown', left: 'ArrowLeft', right: 'ArrowRight' };
-const OVERLAY_IDS = ['npcOverlay', 'rulesOverlay', 'settingsOverlay', 'statsOverlay'];
+const OVERLAY_IDS = ['npcOverlay', 'rulesOverlay', 'settingsOverlay', 'statsOverlay', 'pauseOverlay'];
 
 function anyOverlayVisible() {
   return OVERLAY_IDS.some(id => {
