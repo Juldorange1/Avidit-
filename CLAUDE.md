@@ -79,11 +79,41 @@ avec un bouton pour quitter. Mis en place :
   cette session (fenêtre native hors de portée des outils de test
   disponibles) — son câblage suit un pattern Electron standard et éprouvé,
   mais un vrai clic par l'utilisateur reste la vérification ultime.
-- **Pas encore fait** (étapes suivantes vers Steam, si/quand demandé) :
-  icône d'application, configuration `electron-builder`/`electron-forge`
-  pour produire un vrai `.exe` installable, page Steamworks, achievements
-  Steam éventuels, etc. — tout ça n'a pas été abordé, seule l'étape "faire
-  tourner le jeu dans une fenêtre native avec un bouton Quitter" l'a été.
+**Empaquetage en .exe distribuable (2026-09-02, suite immédiate)** :
+`npm start` seul ne suffisait pas à l'utilisateur ("ça ne m'a pas permis de
+jouer") — il voulait une vraie appli à INSTALLER, pas une commande à lancer
+depuis un terminal (et sans doute un souci de PATH non rafraîchi dans son
+propre terminal après l'installation de Node.js). `electron-builder` ajouté
+(devDependency + bloc `"build"` dans `package.json`, script `npm run dist`).
+- Le packaging de l'appli elle-même RÉUSSIT toujours
+  (`dist\win-unpacked\Avidité.exe`, testé : lance une vraie fenêtre native
+  correctement titrée). C'est la génération du VRAI installeur NSIS
+  (`Setup.exe` avec raccourcis Bureau/Menu Démarrer) qui échoue : elle a
+  besoin d'un outil tiers (`winCodeSign`, pourtant sans rapport avec la
+  signature Windows) que 7-Zip ne peut pas extraire sans les privilèges
+  administrateur — indisponible dans cette session (pas d'élévation
+  possible, et volontairement jamais contourné). Confirmé : le Mode
+  Développeur Windows (qui autoriserait les liens symboliques sans admin)
+  nécessite lui aussi une clé de registre HKLM, refusée pour la même raison.
+- **Solution retenue pour l'instant** : la version "portable" fonctionne
+  déjà parfaitement sans cet outil — `dist\win-unpacked\` zippé
+  (`Avidite-Windows.zip`, ~130 Mo) et envoyé directement à l'utilisateur via
+  SendUserFile. Aucune installation requise : dézipper, lancer `Avidité.exe`.
+  Pas de raccourci Bureau/Menu Démarrer automatique (l'utilisateur peut en
+  créer un lui-même en épinglant l'exe), pas de désinstalleur — c'est la
+  vraie limite face à un installeur NSIS complet.
+- **Pour les mises à jour futures** (demandé explicitement — "il faut que
+  cette version puisse avoir les futures mises à jour, ou que tu puisses
+  facilement me redonner des versions") : pas d'auto-update en place (ça
+  demanderait un serveur de mise à jour + signature de code, hors de
+  portée pour l'instant). Le processus retenu : à chaque changement,
+  augmenter `version` dans `package.json`, relancer `npm run dist`, rezipper
+  `dist\win-unpacked\`, renvoyer via SendUserFile. Fonctionne, juste manuel.
+- **Si l'utilisateur active lui-même le Mode Développeur** (Paramètres
+  Windows → Confidentialité et sécurité → Pour les développeurs) ou lance un
+  jour ce build depuis un terminal EN ADMINISTRATEUR, `npm run dist`
+  produira alors le vrai installeur NSIS sans autre changement de
+  configuration nécessaire — la config `package.json` est déjà prête pour ça.
 
 ## Fichiers
 
