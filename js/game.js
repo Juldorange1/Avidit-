@@ -2,8 +2,21 @@
 
 /* ============================= CONSTANTES ============================= */
 
-const SAVE_KEY = 'avidite_save_v1';
-const RUN_SAVE_KEY = 'avidite_run_v1'; // partie EN COURS (tour, dé, énergie, salle...) — distinct de SAVE_KEY (progression permanente) : voir saveRun()/loadRun()
+// Plusieurs parties indépendantes possibles (comme Hades/Isaac/Minecraft),
+// demandé explicitement : "on choisit dans quelle de ses parties on joue...
+// on peut créer une nouvelle partie avec progression de base à 0 ou
+// supprimer des parties". Chaque partie a sa PROPRE progression permanente
+// (meta) et son PROPRE état en cours (run), sous des clés localStorage
+// distinctes par id de partie — voir slotSaveKey()/slotRunKey() plus bas.
+// SLOTS_INDEX_KEY liste les parties existantes (léger : juste de quoi les
+// afficher sur l'écran de sélection sans devoir charger chaque meta/run en
+// entier). LEGACY_* sont les anciennes clés FIXES d'avant ce système (une
+// seule partie possible) — voir migrateLegacySaveIfNeeded().
+const SLOTS_INDEX_KEY = 'avidite_slots_v1';
+const LEGACY_SAVE_KEY = 'avidite_save_v1';
+const LEGACY_RUN_KEY = 'avidite_run_v1';
+function slotSaveKey(id) { return 'avidite_save_v1_' + id; }
+function slotRunKey(id) { return 'avidite_run_v1_' + id; }
 const BASE_FACES = 50;
 const BASE_ENERGY = 10;
 
@@ -81,8 +94,12 @@ const HOLD_BASE_MS = 1000;
 
 /* ============================= ETAT ============================= */
 
-let meta = loadMeta();
-saveMeta();
+// aucune partie active tant que le joueur n'en a pas choisi une sur l'écran
+// de sélection (voir showSlotsScreen()/enterSlot()) — meta reste un simple
+// gabarit par défaut jusque-là (loadMeta()/saveMeta() n'écrivent jamais tant
+// qu'aucune partie n'est active, voir plus bas).
+let activeSlotId = null;
+let meta = defaultMeta();
 let run = null;
 let rebindListenerActive = false;
 
@@ -140,8 +157,9 @@ function defaultMeta() {
 }
 
 function loadMeta() {
+  if (!activeSlotId) return defaultMeta();
   try {
-    const raw = localStorage.getItem(SAVE_KEY);
+    const raw = localStorage.getItem(slotSaveKey(activeSlotId));
     if (!raw) return defaultMeta();
     const parsed = JSON.parse(raw);
     const d = defaultMeta();
@@ -167,7 +185,8 @@ function loadMeta() {
 }
 
 function saveMeta() {
-  localStorage.setItem(SAVE_KEY, JSON.stringify(meta));
+  if (!activeSlotId) return; // pas de partie active (écran de sélection) : ne jamais écrire dans le vide
+  localStorage.setItem(slotSaveKey(activeSlotId), JSON.stringify(meta));
 }
 
 /* Sauvegarde la partie EN COURS (tour, dé, énergie, or, salle exacte...),
@@ -182,12 +201,13 @@ function saveMeta() {
    plus bas), donc à chaque changement d'état visible — jamais depuis la
    boucle 3D par frame. */
 function saveRun() {
-  if (run) localStorage.setItem(RUN_SAVE_KEY, JSON.stringify(run));
+  if (run && activeSlotId) localStorage.setItem(slotRunKey(activeSlotId), JSON.stringify(run));
 }
 
 function loadRun() {
+  if (!activeSlotId) return null;
   try {
-    const raw = localStorage.getItem(RUN_SAVE_KEY);
+    const raw = localStorage.getItem(slotRunKey(activeSlotId));
     if (!raw) return null;
     const parsed = JSON.parse(raw);
     // une partie qui s'est terminée (perdue) ne doit pas "reprendre" morte —
@@ -197,6 +217,138 @@ function loadRun() {
   } catch (e) {
     return null;
   }
+}
+
+/* ============================= PARTIES (SLOTS) ============================= */
+
+function loadSlotsIndex() {
+  try {
+    const raw = localStorage.getItem(SLOTS_INDEX_KEY);
+    const parsed = raw ? JSON.parse(raw) : null;
+    if (Array.isArray(parsed)) return parsed;
+  } catch (e) { /* repli sur liste vide plus bas */ }
+  return [];
+}
+function saveSlotsIndex(slots) {
+  localStorage.setItem(SLOTS_INDEX_KEY, JSON.stringify(slots));
+}
+
+/* Avant ce système, une seule partie possible sous des clés FIXES
+   (LEGACY_SAVE_KEY/LEGACY_RUN_KEY). Si elles existent encore et qu'aucune
+   partie n'a jamais été créée dans le nouveau système, les convertit en
+   Partie 1 automatiquement — une seule fois — pour ne jamais perdre la
+   progression déjà là ("ne casse pas la sauvegarde"). */
+function migrateLegacySaveIfNeeded() {
+  const slots = loadSlotsIndex();
+  if (slots.length > 0) return slots;
+  const legacyMeta = localStorage.getItem(LEGACY_SAVE_KEY);
+  const legacyRun = localStorage.getItem(LEGACY_RUN_KEY);
+  if (!legacyMeta && !legacyRun) return slots;
+  const id = 'slot_' + Date.now();
+  if (legacyMeta) localStorage.setItem(slotSaveKey(id), legacyMeta);
+  if (legacyRun) localStorage.setItem(slotRunKey(id), legacyRun);
+  localStorage.removeItem(LEGACY_SAVE_KEY);
+  localStorage.removeItem(LEGACY_RUN_KEY);
+  const newSlots = [{ id, number: 1, createdAt: Date.now(), updatedAt: Date.now() }];
+  saveSlotsIndex(newSlots);
+  return newSlots;
+}
+
+/* Écran affiché au chargement de la page (voir init()) ET accessible en
+   cours de partie via le bouton "Menu" de la barre d'outils — demandé
+   explicitement : choisir/créer/supprimer une partie, comme Hades/Isaac/
+   Minecraft. Mettre en pause : libère le curseur et masque le jeu, sans
+   jamais détruire la scène 3D déjà construite (elle sera juste régénérée
+   avec l'état de la prochaine partie choisie, voir enterSlot()). */
+function showSlotsScreen() {
+  if (document.pointerLockElement) document.exitPointerLock();
+  const playArea = document.getElementById('playArea');
+  if (playArea) playArea.hidden = true;
+  document.getElementById('toolbar').hidden = true;
+  renderSlotsScreen();
+  document.getElementById('slotsScreen').hidden = false;
+}
+
+function renderSlotsScreen() {
+  const slots = migrateLegacySaveIfNeeded();
+  const list = document.getElementById('slotsList');
+  list.innerHTML = '';
+  if (!slots.length) {
+    const p = document.createElement('p');
+    p.className = 'slots-empty';
+    p.textContent = t('slots.empty');
+    list.appendChild(p);
+  }
+  slots.slice().sort((a, b) => b.updatedAt - a.updatedAt).forEach(slot => {
+    let slotMeta = null, slotRun = null;
+    try { slotMeta = JSON.parse(localStorage.getItem(slotSaveKey(slot.id))); } catch (e) { /* repli plus bas */ }
+    try { slotRun = JSON.parse(localStorage.getItem(slotRunKey(slot.id))); } catch (e) { /* repli plus bas */ }
+    const gold = slotMeta ? slotMeta.gold : 0;
+    const turn = slotRun ? slotRun.turn : 0;
+    const zone = (slotMeta && typeof slotMeta.zoneIndex === 'number') ? zoneName(slotMeta.zoneIndex) : '';
+
+    const card = document.createElement('div');
+    card.className = 'slot-card';
+    card.innerHTML = `
+      <div class="slot-info">
+        <span class="slot-name">${t('slots.label', { n: slot.number })}</span>
+        <span class="slot-stats">${t('slots.stats', { gold, turn, zone })}</span>
+      </div>
+      <div class="slot-actions">
+        <button class="accept-btn slot-continue-btn">${t('slots.continue')}</button>
+        <button class="slot-delete-btn" title="${t('slots.deleteConfirm', { n: slot.number })}">✕</button>
+      </div>
+    `;
+    card.addEventListener('click', () => enterSlot(slot.id));
+    card.querySelector('.slot-delete-btn').addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (confirm(t('slots.deleteConfirm', { n: slot.number }))) deleteSlot(slot.id);
+    });
+    list.appendChild(card);
+  });
+}
+
+function createNewSlot() {
+  const slots = loadSlotsIndex();
+  const nextNumber = slots.length ? Math.max(...slots.map(s => s.number)) + 1 : 1;
+  const id = 'slot_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
+  slots.push({ id, number: nextNumber, createdAt: Date.now(), updatedAt: Date.now() });
+  saveSlotsIndex(slots);
+  enterSlot(id);
+}
+
+function deleteSlot(id) {
+  localStorage.removeItem(slotSaveKey(id));
+  localStorage.removeItem(slotRunKey(id));
+  saveSlotsIndex(loadSlotsIndex().filter(s => s.id !== id));
+  renderSlotsScreen();
+}
+
+/* Rend la partie `id` active et lance le jeu — seul point d'entrée en
+   gameplay (remplace l'ancien démarrage automatique). */
+function enterSlot(id) {
+  activeSlotId = id;
+  meta = loadMeta();
+  saveMeta();
+  applyDiceSpeed();
+  document.documentElement.lang = meta.lang;
+  if (window.applyStaticI18n) applyStaticI18n();
+
+  const slots = loadSlotsIndex();
+  const idx = slots.findIndex(s => s.id === id);
+  if (idx >= 0) { slots[idx].updatedAt = Date.now(); saveSlotsIndex(slots); }
+
+  const resuming = !!loadRun();
+  // nouvelle partie (jamais jouée, ou reprise d'une partie qui s'est
+  // terminée) : si une AUTRE partie a déjà tourné dans cette page, la scène
+  // 3D garde le souvenir d'avoir déjà franchi une porte — sans ce reset, la
+  // toute première salle de cette partie-ci afficherait à tort une porte
+  // d'entrée (voir resetRoomEntryState() dans scene3d.js).
+  if (!resuming && window.resetRoomEntryState) window.resetRoomEntryState();
+
+  document.getElementById('slotsScreen').hidden = true;
+  document.getElementById('toolbar').hidden = false;
+  newRun();
 }
 
 function newRun() {
@@ -1241,8 +1393,9 @@ function wireEvents() {
     renderSettings();
   });
   document.getElementById('btnResetSave').addEventListener('click', () => {
+    if (!activeSlotId) return;
     if (confirm(t('settings.resetSave.confirm'))) {
-      localStorage.removeItem(SAVE_KEY);
+      localStorage.removeItem(slotSaveKey(activeSlotId));
       meta = defaultMeta();
       applyDiceSpeed();
       // pas d'appel à render() ici : ses vérifications de records comparent
@@ -1258,13 +1411,16 @@ function wireEvents() {
     render();
   });
 
+  document.getElementById('btnNewSlot').addEventListener('click', createNewSlot);
+  document.getElementById('btnBackToMenu').addEventListener('click', showSlotsScreen);
+
   window.addEventListener('keydown', handleGlobalEscape);
 }
 
-/* Plus d'écran de démarrage : la partie s'enclenche directement au
-   chargement de la page. Le tout premier clic du joueur (sur la zone 3D,
-   pour verrouiller le curseur) sert de geste utilisateur pour débloquer
-   l'audio — voir le gestionnaire de clic dans scene3d.js. */
+/* Écran de sélection de partie au chargement (voir showSlotsScreen()) —
+   plus de démarrage automatique direct. Le premier clic du joueur (sur la
+   carte d'une partie, ou dans la zone 3D une fois en jeu) sert de geste
+   utilisateur pour débloquer l'audio — voir SFX.init() dans scene3d.js. */
 function init() {
   document.documentElement.lang = meta.lang;
   if (window.applyStaticI18n) applyStaticI18n();
@@ -1272,7 +1428,7 @@ function init() {
   buildDial();
   applyDiceSpeed();
   wireEvents();
-  newRun();
+  showSlotsScreen();
 }
 
 document.addEventListener('DOMContentLoaded', init);

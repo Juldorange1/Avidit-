@@ -33,15 +33,24 @@
     </svg>
   </div>
 
-  <div class="toolbar">
+  <div class="toolbar" id="toolbar" hidden>
     <button class="ghost-btn" id="btnRules" data-i18n="toolbar.rules">Règles</button>
     <button class="ghost-btn" id="btnStats" data-i18n="toolbar.stats">Records</button>
     <button class="ghost-btn" id="btnSettings" data-i18n="toolbar.settings">Paramètres</button>
+    <button class="ghost-btn" id="btnBackToMenu" data-i18n="toolbar.menu">Menu</button>
   </div>
 
   <header class="titlebar" id="titlebar">
     <h1 data-i18n="app.title">AVIDITÉ</h1>
   </header>
+
+  <div class="slots-screen" id="slotsScreen">
+    <div class="slots-panel">
+      <h2 data-i18n="slots.title">Choisir une partie</h2>
+      <div class="slots-list" id="slotsList"></div>
+      <button class="accept-btn big" id="btnNewSlot" data-i18n="slots.new">+ Nouvelle partie</button>
+    </div>
+  </div>
 
   <div class="play-area" id="playArea" hidden>
     <div class="three-container" id="threeContainer"></div>
@@ -224,9 +233,9 @@
 }
 </script>
 <script src="https://unpkg.com/three@0.155.0/build/three.js"></script>
-<script src="js/i18n.js?v=5"></script>
+<script src="js/i18n.js?v=6"></script>
 <script src="js/audio.js?v=4"></script>
-<script src="js/game.js?v=32"></script>
-<script src="js/scene3d.js?v=51"></script>
+<script src="js/game.js?v=33"></script>
+<script src="js/scene3d.js?v=54"></script>
 </body>
 </html>

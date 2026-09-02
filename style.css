@@ -681,6 +681,58 @@ h1,h2,h3,.badge,.stat .label,.accept-btn,.ghost-btn,button{
   50%{ box-shadow:0 0 22px rgba(232,182,79,0.65); }
 }
 
+/* ---------- ÉCRAN DE SÉLECTION DE PARTIE ---------- */
+/* Affiché au chargement de la page à la place du jeu (voir showSlotsScreen()
+   dans game.js) — plusieurs parties indépendantes, chacune avec sa propre
+   progression, comme Hades/Isaac/Minecraft (demandé explicitement). */
+.slots-screen{
+  position:fixed; inset:0; z-index:10;
+  display:flex; align-items:center; justify-content:center;
+  padding:20px;
+}
+.slots-screen[hidden]{ display:none; }
+.slots-panel{
+  max-width:520px; width:100%;
+  max-height:85vh;
+  overflow-y:auto;
+  background:linear-gradient(180deg, #241a0c, #0a0704);
+  border:1px solid var(--gold);
+  border-radius:18px;
+  padding:36px 32px;
+  text-align:center;
+  box-shadow:0 0 80px rgba(232,182,79,0.3);
+}
+.slots-panel h2{
+  font-size:1.8rem;
+  letter-spacing:0.15em;
+  margin:0 0 20px;
+  background:linear-gradient(180deg, var(--gold-light), var(--gold));
+  -webkit-background-clip:text; background-clip:text; color:transparent;
+}
+.slots-list{ display:flex; flex-direction:column; gap:10px; margin-bottom:22px; text-align:left; }
+.slots-empty{ color:var(--ink-dim); font-style:italic; margin:0 0 22px; }
+.slot-card{
+  display:flex; align-items:center; justify-content:space-between; gap:12px;
+  background:linear-gradient(160deg, rgba(40,30,14,0.9), rgba(14,10,5,0.95));
+  border:1px solid var(--panel-border);
+  border-radius:10px;
+  padding:12px 14px;
+  cursor:pointer;
+  transition:border-color 0.15s ease;
+}
+.slot-card:hover{ border-color:var(--gold); }
+.slot-info{ display:flex; flex-direction:column; gap:4px; min-width:0; }
+.slot-name{ font-family:'Cinzel', serif; color:var(--gold-light); font-size:0.95rem; }
+.slot-stats{ font-size:0.76rem; color:var(--ink-dim); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.slot-actions{ display:flex; align-items:center; gap:8px; flex:0 0 auto; }
+.slot-continue-btn{ padding:8px 16px; font-size:0.78rem; }
+.slot-delete-btn{
+  width:32px; height:32px; padding:0; border-radius:50%;
+  background:transparent; border:1px solid rgba(192,57,43,0.4); color:#c98d80;
+  font-family:'Cinzel', serif; cursor:pointer;
+}
+.slot-delete-btn:hover{ border-color:var(--danger); color:var(--danger-glow); }
+
 /* ---------- SETTINGS / KEYBINDS ---------- */
 .settings-card{ max-width:520px; text-align:left; max-height:80vh; overflow-y:auto; }
 .keybind-list{ display:flex; flex-direction:column; gap:8px; margin:14px 0; }

@@ -22,6 +22,15 @@ const STRINGS = {
     'toolbar.rules': 'Règles',
     'toolbar.stats': 'Records',
     'toolbar.settings': 'Paramètres',
+    'toolbar.menu': 'Menu',
+
+    'slots.title': 'Choisir une partie',
+    'slots.new': '+ Nouvelle partie',
+    'slots.continue': 'Continuer',
+    'slots.empty': "Aucune partie pour l'instant — commencez-en une !",
+    'slots.label': 'Partie {n}',
+    'slots.stats': 'Or banqué {gold} · Tour {turn} · {zone}',
+    'slots.deleteConfirm': 'Supprimer définitivement la partie {n} ? Impossible à annuler.',
 
     'dial.faceWord': 'faces',
     'hud.faces': 'Faces du Dé',
@@ -203,6 +212,15 @@ const STRINGS = {
     'toolbar.rules': 'Rules',
     'toolbar.stats': 'Records',
     'toolbar.settings': 'Settings',
+    'toolbar.menu': 'Menu',
+
+    'slots.title': 'Choose a save',
+    'slots.new': '+ New game',
+    'slots.continue': 'Continue',
+    'slots.empty': 'No saves yet — start one!',
+    'slots.label': 'Save {n}',
+    'slots.stats': 'Banked gold {gold} · Turn {turn} · {zone}',
+    'slots.deleteConfirm': 'Permanently delete save {n}? This cannot be undone.',
 
     'dial.faceWord': 'faces',
     'hud.faces': 'Wheel Faces',

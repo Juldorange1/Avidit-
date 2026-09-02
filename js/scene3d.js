@@ -106,15 +106,9 @@ const DOOR_SLOTS = PATH_ORDER.map((id, i) => ({ id, angle: -DOOR_ARC_HALF + i * 
 // nouvelle salle). Voir buildEntryDoor()/buildBoundary().
 const ENTRY_ANGLE = 180;
 
-/* Emplacements fixes des 3 PNJ possibles, dans l'arc ARRIÈRE (hors de celui
-   des 8 portes, ±DOOR_ARC_HALF) — jamais sur le chemin d'une porte. Seuls
-   ceux effectivement présents cette salle (window.getCurrentNpcs()) sont
-   construits. */
-const NPC_SLOTS = [
-  { id: 'npc1', angle: 140 },
-  { id: 'npc2', angle: 180 },
-  { id: 'npc3', angle: 220 },
-];
+// Rayon fixe auquel se tient un PNJ (voir buildNpc()) — son ANGLE, lui, est
+// tiré au hasard à chaque salle dans buildRoomInto() (jamais sur le chemin
+// d'une porte/l'entrée, jamais superposé à un autre PNJ de la même salle).
 const NPC_STAND_R = 2.2;
 const DOOR_PREOPEN_DIST = 2.0; // le battant s'ouvre (son + animation) cette distance avant DOOR_R, pour qu'on le VOIE s'ouvrir devant soi au lieu de derrière la tête
 const DOOR_CLOSE_HYSTERESIS = 0.5; // marge avant de refermer un battant qu'on vient de quitter, pour éviter un battement au pas de la frontière
@@ -1543,21 +1537,47 @@ function buildRoomInto(group, labelArr, origin, forward, right) {
     group.add(buildDoorFrame(ENTRY_ANGLE, origin, forward, right, zoneIdx, wallHeight));
   }
 
+  // Angle de CHAQUE PNJ présent tiré au hasard pour CETTE salle (évite
+  // l'entrée et les autres PNJ déjà placés) — demandé explicitement ("les
+  // PNJ sont toujours à la même place dans les salles" signalé comme un
+  // bug). Avant : NPC_SLOTS associait un angle FIXE à chaque id de PNJ, donc
+  // npc2 par exemple apparaissait toujours pile en face de l'entrée. Tiré
+  // dans l'arc ARRIÈRE (100°-260°, symétrique autour de ENTRY_ANGLE=180°) —
+  // JAMAIS du côté des 8 portes, qui occupent ±80° autour du "devant" (0°) :
+  // les deux arcs ne se touchent jamais, donc pas besoin de vérifier les
+  // portes une par une ici, juste l'entrée + les autres PNJ déjà posés.
+  // Calculé AVANT buildProps() pour que le décor évite aussi les PNJ une
+  // fois placés (comme avant, mais avec leur vraie position de cette salle).
+  const NPC_BACK_ARC_HALF = 80; // 100°..260°, centré sur ENTRY_ANGLE
+  const npcAngles = {};
+  presentNpcs.forEach(id => {
+    let angle, attempts = 0;
+    const taken = Object.values(npcAngles);
+    do {
+      angle = ENTRY_ANGLE + (Math.random() * 2 - 1) * NPC_BACK_ARC_HALF;
+      attempts++;
+    } while (
+      attempts < 100 &&
+      (Math.abs(angleDiff(angle, ENTRY_ANGLE)) < 25 ||
+       taken.some(a => Math.abs(angleDiff(angle, a)) < 20))
+    );
+    npcAngles[id] = angle;
+  });
+
   // décor (voir buildProps()) : uniquement une fois les modèles réels chargés
   // (pas de repli procédural pour ça — jugés "moches" par l'utilisateur dans
   // leur ancienne version en formes géométriques simples, retirés pour de
   // bon ; ils reviennent maintenant seulement avec de vrais modèles 3D).
-  const avoidAngles = DOOR_SLOTS.map(s => s.angle).concat(NPC_SLOTS.map(s => s.angle)).concat([ENTRY_ANGLE]);
+  const avoidAngles = DOOR_SLOTS.map(s => s.angle).concat([ENTRY_ANGLE]).concat(Object.values(npcAngles));
   const propsBuilt = buildProps(zoneIdx, origin, forward, right, avoidAngles, wallHeight);
   group.add(propsBuilt.group);
   const obstacles = propsBuilt.obstacles;
 
   const npcSlots = [];
-  NPC_SLOTS.forEach(slot => {
-    if (!presentNpcs.includes(slot.id)) return;
-    const built = buildNpc(slot.id, slot.angle, origin, forward, right, labelArr);
+  presentNpcs.forEach(id => {
+    const built = buildNpc(id, npcAngles[id], origin, forward, right, labelArr);
     group.add(built.object);
-    npcSlots.push({ id: slot.id, worldPos: built.worldPos, group: built.object });
+    npcSlots.push({ id, worldPos: built.worldPos, group: built.object });
     obstacles.push({ type: 'circle', x: built.worldPos.x, z: built.worldPos.z, radius: built.collisionRadius });
   });
 
@@ -1652,6 +1672,12 @@ window.enterPlayMode = enterPlayMode;
 // la toute première de la partie, elle doit donc afficher sa porte d'entrée
 // (voir buildRoomInto/ENTRY_ANGLE) comme n'importe quelle autre salle.
 window.markRoomAlreadyEntered = () => { hasEnteredViaDoor = true; };
+// appelé par game.js quand une toute NOUVELLE partie démarre APRÈS qu'une
+// autre a déjà tourné dans cette même page (changement de partie sans
+// recharger — voir enterSlot() dans game.js) : sans ça, `hasEnteredViaDoor`
+// resterait à `true` d'une partie précédente et la toute première salle de
+// la nouvelle partie afficherait à tort une porte d'entrée.
+window.resetRoomEntryState = () => { hasEnteredViaDoor = false; };
 
 /* ============================= BOUCLE ============================= */
 
